@@ -1,6 +1,6 @@
 #pragma once
 
-namespace VulkanEng
+namespace vulkanEng
 {
     struct GLFWInitialization
     {

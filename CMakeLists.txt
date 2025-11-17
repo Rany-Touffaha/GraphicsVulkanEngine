@@ -49,3 +49,6 @@ target_include_directories(GraphicsVulkanEngine PRIVATE "${CMAKE_CURRENT_SOURCE_
 target_include_directories(GraphicsVulkanEngine PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/build")
 
 target_compile_features(GraphicsVulkanEngine PRIVATE cxx_std_20)
+
+target_precompile_headers(GraphicsVulkanEngine PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/precomp.h"
+)

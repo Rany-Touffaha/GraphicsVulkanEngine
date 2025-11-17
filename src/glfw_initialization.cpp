@@ -1,8 +1,7 @@
-#include <glfw_initialization.h>
-#include <cstdlib>
 #include <GLFW/glfw3.h>
+#include <glfw_initialization.h>
 
-namespace VulkanEng
+namespace vulkanEng
 {
     GLFWInitialization::GLFWInitialization()
     {
