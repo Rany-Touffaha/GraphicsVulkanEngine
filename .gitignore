@@ -1,0 +1,138 @@
+### Linux ###
+*~
+
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+### macOS ###
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon must end with two \r
+Icon
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+### macOS Patch ###
+# iCloud generated files
+*.icloud
+
+### VisualStudioCode ###
+.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# Local History for Visual Studio Code
+.history/
+
+# Built Visual Studio Code Extensions
+*.vsix
+
+### VisualStudioCode Patch ###
+.history
+.ionide
+
+### Windows ###
+# Windows thumbnail cache files
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+
+# Dump file
+*.stackdump
+
+# Folder config file
+[Dd]esktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# Windows shortcuts
+*.lnk
+
+
+### Build / Graphics Libraries / CMake ###
+# Build output directories
+/build/
+[Bb]uild/
+[Bb]in/
+[Oo]bj/
+out/
+
+# CMake intermediate files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# Dependency caches
+.conan/
+vcpkg_installed/
+
+# Compiled binaries
+*.exe
+*.dll
+*.so
+*.dylib
+*.lib
+*.a
+*.out
+*.run
+
+# Shader cache / intermediates
+*.spv
+*.air
+*.metal-air
+*.metallib
+
+### Generated binaries and debug symbols in src ###
+src/*.o
+src/*.obj
+src/*.pch
+src/*.pdb
+src/*.mod
+src/*.ilk
+src/*.out
+src/*.run
+src/*.exe
+src/main
+src/*.dylib
+src/*.dSYM/
+src/*.bundle
+src/*.app
+
+
+### VS Code Workspace ###
+*.code-workspace
