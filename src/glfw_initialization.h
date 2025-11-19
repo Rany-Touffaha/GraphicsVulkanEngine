@@ -11,5 +11,4 @@ namespace vulkanEng
             GLFWInitialization(const GLFWInitialization&) = delete;
             GLFWInitialization& operator=(const GLFWInitialization&) = delete;
     };
-    
 }

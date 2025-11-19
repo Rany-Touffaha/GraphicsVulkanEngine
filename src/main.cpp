@@ -1,5 +1,6 @@
 #include <GLFW/glfw3.h>
 #include <glfw_initialization.h>
+#include <glfw_monitor.h>
 
 std::int32_t main(std::int32_t argc, gsl::zstring* argv)
 {
@@ -11,23 +12,15 @@ std::int32_t main(std::int32_t argc, gsl::zstring* argv)
         glfwDestroyWindow(window);
     });
 
-    std::int32_t monitor_count = 0;
-    GLFWmonitor** monitor_pointers = glfwGetMonitors(&monitor_count);
-    gsl::span<GLFWmonitor*> monitors(monitor_pointers, monitor_count);
-
-    glm::ivec2 monitor_position;
-    glfwGetMonitorPos(monitors[1], &monitor_position.x, &monitor_position.y);
-    glfwSetWindowPos(window, monitor_position.x, monitor_position.y);
-
     glm::ivec2 window_size;
     glfwGetWindowSize(window, &window_size.x, &window_size.y);
 
-    glm::ivec2 monitor_size;
-    glfwGetMonitorWorkarea(monitors[1], nullptr, nullptr, &monitor_size.x, &monitor_size.y);
+    gsl::span<GLFWmonitor*> monitors = vulkanEng::getMonitors();
 
-    glm::ivec2 new_window_position = monitor_position + (monitor_size / 2) - (window_size) / 2;
-    glfwSetWindowPos(window, new_window_position.x, new_window_position.y);
-    
+    if (monitors.size() > 1) {
+        vulkanEng::moveWindowToMonitor(window, monitors[1]);
+    }
+
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
