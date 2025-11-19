@@ -2,6 +2,7 @@
 #include <glfw_initialization.h>
 #include <glfw_monitor.h>
 #include <glfw_window.h>
+#include <precomp.h>
 
 std::int32_t main(std::int32_t argc, gsl::zstring* argv)
 {

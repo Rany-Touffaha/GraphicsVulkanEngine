@@ -1,16 +1,19 @@
 #include <glfw_window.h>
 #include <glfw_monitor.h>
 #include <GLFW/glfw3.h>
+#include <precomp.h>
 
 namespace vulkanEng
 {
    Window::Window(gsl::czstring name, glm::ivec2 size)
    {
-       window_ = glfwCreateWindow(size.x, size.y, name, nullptr, nullptr);
-       if (window_ == nullptr)
-       {
-           std::exit(EXIT_FAILURE);
-       }
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        window_ = glfwCreateWindow(size.x, size.y, name, nullptr, nullptr);
+        if (window_ == nullptr)
+        {
+            std::exit(EXIT_FAILURE);
+        }
    }
    
    Window::~Window()
