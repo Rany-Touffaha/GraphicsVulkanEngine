@@ -28,5 +28,4 @@ namespace vulkanEng
         const glm::ivec2 new_window_position = getMonitorPosition(monitor) + (getMonitorWorkAreaSize(monitor) / 2) - (window_size) / 2;
         glfwSetWindowPos(window, new_window_position.x, new_window_position.y);
     };
-
 }
