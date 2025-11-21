@@ -3,6 +3,7 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <vulkan/vulkan.h>
+#include <spdlog/spdlog.h>
 
 namespace vulkanEng
 {
@@ -12,13 +13,12 @@ namespace vulkanEng
         const VkDebugUtilsMessengerCallbackDataEXT*  callback_data,
         void*                                        user_data)
     {
-
-        if(severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT){
-            std::cerr << "Validation layer: " << callback_data->pMessage << std::endl;
+        if(severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT){
+            spdlog::warn("Vulkan Validation: {}", callback_data->pMessage);
         } else {
-            std::cout << "Validation layer: " << callback_data->pMessage << std::endl;
+            spdlog::error("Vulkan Error: {}", callback_data->pMessage);
         }
-
+        
         return VK_FALSE;
     }
 
@@ -26,7 +26,6 @@ namespace vulkanEng
         VkDebugUtilsMessengerCreateInfoEXT creation_info = {};
         creation_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
         creation_info.messageSeverity =
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
             VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
             VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
         creation_info.messageType =

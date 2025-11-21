@@ -23,6 +23,15 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(glm)
 
 FetchContent_Declare(
+    splog
+    GIT_REPOSITORY "https://github.com/gabime/spdlog.git"
+    GIT_TAG "v1.16.0"
+    GIT_SHALLOW TRUE
+)
+
+FetchContent_MakeAvailable(splog)
+
+FetchContent_Declare(
     glfw
     GIT_REPOSITORY "https://github.com/glfw/glfw.git"
     GIT_TAG "3.4"
@@ -52,6 +61,7 @@ target_link_libraries(GraphicsVulkanEngine PRIVATE Vulkan::Vulkan)
 target_link_libraries(GraphicsVulkanEngine PRIVATE glm)
 target_link_libraries(GraphicsVulkanEngine PRIVATE glfw)
 target_link_libraries(GraphicsVulkanEngine PRIVATE Microsoft.GSL::GSL)
+target_link_libraries(GraphicsVulkanEngine PRIVATE spdlog::spdlog)
 if(APPLE)
     target_link_libraries(GraphicsVulkanEngine PRIVATE ${MOLTENVK_LIBRARY})
     target_include_directories(GraphicsVulkanEngine PRIVATE ${MOLTENVK_INCLUDE_DIR})
