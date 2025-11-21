@@ -316,6 +316,44 @@ namespace vulkanEng
         return devices;
     }
 
+    void Graphics::createLogicalDeviceAndQueues()
+    {
+        QueueFamilyIndices picked_device_families = findQueueFamilies(physical_device_);
+
+        if(!picked_device_families.IsValid()) {
+            std::exit(EXIT_SUCCESS);
+        }
+
+        std::float_t queue_priority = 1.0f;
+
+        VkDeviceQueueCreateInfo queue_info = {};
+        queue_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queue_info.queueFamilyIndex = picked_device_families.graphics_family.value();
+        queue_info.queueCount = 1;
+        queue_info.pQueuePriorities = &queue_priority;
+
+        VkPhysicalDeviceFeatures required_features = {};
+
+        VkDeviceCreateInfo device_info = {};
+        device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        device_info.queueCreateInfoCount = 1;
+        device_info.pQueueCreateInfos = &queue_info;
+        device_info.enabledExtensionCount = 0;
+        device_info.enabledLayerCount = 0;
+
+        VkResult result = vkCreateDevice(
+            physical_device_,
+            &device_info,
+            nullptr,
+            &logical_device_
+        );
+
+        if (result != VK_SUCCESS) {
+            spdlog::error("Failed to create logical device: {}", static_cast<int>(result));
+            std::exit(EXIT_FAILURE);
+        }
+    }
+
     #pragma endregion
 
 
@@ -331,6 +369,10 @@ namespace vulkanEng
 
     Graphics::~Graphics()
     {
+        if(logical_device_ != nullptr) {
+            vkDestroyDevice(logical_device_, nullptr);
+        }
+
         if(instance_ != nullptr) {
 
             if(debug_messenger_ != nullptr) {
@@ -346,5 +388,6 @@ namespace vulkanEng
         createInstance();
         setupDebugMessenger();
         pickPhysicalDevice();
+        createLogicalDeviceAndQueues();
     }
 }

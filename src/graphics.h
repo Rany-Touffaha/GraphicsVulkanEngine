@@ -24,11 +24,11 @@ namespace vulkanEng
             }
         };
         
-
         void initializeVulkan();
         void createInstance();
         void setupDebugMessenger();
         void pickPhysicalDevice();
+        void createLogicalDeviceAndQueues();
         std::vector<gsl::czstring> getRequiredInstanceExtensions();
 
         static gsl::span<gsl::czstring> getSuggestedInstanceExtensions();
@@ -44,6 +44,7 @@ namespace vulkanEng
 
         VkInstance instance_ = nullptr;
         VkPhysicalDevice physical_device_ = nullptr;
+        VkDevice logical_device_ = nullptr;
         VkDebugUtilsMessengerEXT debug_messenger_;
         gsl::not_null<Window*> window_;
         bool validation_enabled_ = true;
