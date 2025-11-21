@@ -1,8 +1,9 @@
+#include <precomp.h>
 #include <GLFW/glfw3.h>
 #include <glfw_initialization.h>
 #include <glfw_monitor.h>
 #include <glfw_window.h>
-#include <precomp.h>
+#include <graphics.h>
 
 std::int32_t main(std::int32_t argc, gsl::zstring* argv)
 {
@@ -10,6 +11,8 @@ std::int32_t main(std::int32_t argc, gsl::zstring* argv)
 
     vulkanEng::Window window("Vulkan Engine", {800, 600});
     window.tryMoveToMonitor(1);
+
+    vulkanEng::Graphics graphics(&window);
 
     while (!window.shouldClose())
     {

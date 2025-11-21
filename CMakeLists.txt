@@ -3,6 +3,14 @@ project(GraphicsVulkanEngine)
 
 find_package(Vulkan REQUIRED)
 
+# MoltenVK setup
+if(APPLE)
+    find_library(MOLTENVK_LIBRARY MoltenVK REQUIRED)
+    get_filename_component(MOLTENVK_LIB_DIR "${MOLTENVK_LIBRARY}" DIRECTORY)
+    get_filename_component(MOLTENVK_DIR "${MOLTENVK_LIB_DIR}/../.." ABSOLUTE)
+    set(MOLTENVK_INCLUDE_DIR "${MOLTENVK_DIR}/include")
+endif()
+
 include(FetchContent)
 
 FetchContent_Declare(
@@ -44,6 +52,10 @@ target_link_libraries(GraphicsVulkanEngine PRIVATE Vulkan::Vulkan)
 target_link_libraries(GraphicsVulkanEngine PRIVATE glm)
 target_link_libraries(GraphicsVulkanEngine PRIVATE glfw)
 target_link_libraries(GraphicsVulkanEngine PRIVATE Microsoft.GSL::GSL)
+if(APPLE)
+    target_link_libraries(GraphicsVulkanEngine PRIVATE ${MOLTENVK_LIBRARY})
+    target_include_directories(GraphicsVulkanEngine PRIVATE ${MOLTENVK_INCLUDE_DIR})
+endif()
 
 target_include_directories(GraphicsVulkanEngine PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_include_directories(GraphicsVulkanEngine PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/build")
