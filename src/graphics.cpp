@@ -5,6 +5,8 @@
 #include <vulkan/vulkan.h>
 #include <spdlog/spdlog.h>
 
+#pragma region VK_FUNCTION_EXT_IMPL
+
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateDebugUtilsMessengerEXT(
     VkInstance                                  instance,
     const VkDebugUtilsMessengerCreateInfoEXT*   info,
@@ -34,8 +36,12 @@ VKAPI_ATTR void VKAPI_CALL vkDestroyDebugUtilsMessengerEXT(
     }
 }
 
+#pragma endregion
+
 namespace vulkanEng
 {
+    #pragma region VALIDATION_LAYERS
+
     static VKAPI_ATTR VkBool32 VKAPI_CALL ValidationCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT       severity,
         VkDebugUtilsMessageTypeFlagsEXT              type,
@@ -64,34 +70,63 @@ namespace vulkanEng
         creation_info.pUserData = nullptr;
         return creation_info;
     }
- 
-    Graphics::Graphics(gsl::not_null<Window*> window)
-        : window_(window)
-    {
-        #if !defined(NDEBUG)
-            validation_enabled_ = true;
-        #endif
 
-        initializeVulkan();
+    std::vector<VkLayerProperties> Graphics::getSupportedValidationLayers()
+    {
+        uint32_t count;
+        vkEnumerateInstanceLayerProperties(&count, nullptr);
+
+        if(count == 0) {
+            return {};
+        }
+
+        std::vector<VkLayerProperties> properties(count);
+        vkEnumerateInstanceLayerProperties(&count, properties.data());
+        return properties;
     }
 
-    Graphics::~Graphics()
+    bool LayerMatchesName(gsl::czstring name, const VkLayerProperties& property)
     {
-        if(instance_ != nullptr) {
+        return vulkanEng::streq(property.layerName, name);
+    }
 
-            if(debug_messenger_ != nullptr) {
-                vkDestroyDebugUtilsMessengerEXT(instance_, debug_messenger_, nullptr);
-            }
+    bool IsLayerSupported(gsl::span<VkLayerProperties> layers, gsl::czstring name)
+    {
+        return std::any_of(layers.begin(), layers.end(),
+                           std::bind_front(LayerMatchesName, name));
+    }
 
-            vkDestroyInstance(instance_, nullptr);
+    bool Graphics::areAllLayersSupported(gsl::span<gsl::czstring> layers)
+    {
+        std::vector<VkLayerProperties> supported_layers = getSupportedValidationLayers();
+
+        return std::all_of(layers.begin(), layers.end(),
+            [&](gsl::czstring name) { return IsLayerSupported(supported_layers, name); });
+    }
+
+    void Graphics::setupDebugMessenger()
+    {
+        if (!validation_enabled_) {
+            return;
+        }
+
+        VkDebugUtilsMessengerCreateInfoEXT info = GetCreateMessengerInfo();
+
+        VkResult result = vkCreateDebugUtilsMessengerEXT(
+            instance_,
+            &info,
+            nullptr,
+            &debug_messenger_);
+        
+        if (result != VK_SUCCESS) {
+            spdlog::error("Failed to set up debug messenger: {}", static_cast<int>(result));
+            return;
         }
     }
 
-    void Graphics::initializeVulkan()
-    {
-        createInstance();
-        setupDebugMessenger();
-    }
+    #pragma endregion
+ 
+    #pragma region INSTANCE_AND_EXTENSIONS
 
     void Graphics::createInstance()
     #ifndef VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR
@@ -149,26 +184,6 @@ namespace vulkanEng
         }
 
         std::cout << "Vulkan instance created successfully" << std::endl;
-    }
-
-    void Graphics::setupDebugMessenger()
-    {
-        if (!validation_enabled_) {
-            return;
-        }
-
-        VkDebugUtilsMessengerCreateInfoEXT info = GetCreateMessengerInfo();
-
-        VkResult result = vkCreateDebugUtilsMessengerEXT(
-            instance_,
-            &info,
-            nullptr,
-            &debug_messenger_);
-        
-        if (result != VK_SUCCESS) {
-            spdlog::error("Failed to set up debug messenger: {}", static_cast<int>(result));
-            return;
-        }
     }
 
     gsl::span<gsl::czstring> Graphics::getSuggestedInstanceExtensions()
@@ -242,36 +257,33 @@ namespace vulkanEng
             std::bind_front(IsExtensionSupported, supported_extensions));
     }
 
-    std::vector<VkLayerProperties> Graphics::getSupportedValidationLayers()
-    {
-        uint32_t count;
-        vkEnumerateInstanceLayerProperties(&count, nullptr);
+    #pragma endregion
 
-        if(count == 0) {
-            return {};
+    Graphics::Graphics(gsl::not_null<Window*> window)
+        : window_(window)
+    {
+        #if !defined(NDEBUG)
+            validation_enabled_ = true;
+        #endif
+
+        initializeVulkan();
+    }
+
+    Graphics::~Graphics()
+    {
+        if(instance_ != nullptr) {
+
+            if(debug_messenger_ != nullptr) {
+                vkDestroyDebugUtilsMessengerEXT(instance_, debug_messenger_, nullptr);
+            }
+
+            vkDestroyInstance(instance_, nullptr);
         }
-
-        std::vector<VkLayerProperties> properties(count);
-        vkEnumerateInstanceLayerProperties(&count, properties.data());
-        return properties;
     }
 
-    bool LayerMatchesName(gsl::czstring name, const VkLayerProperties& property)
+    void Graphics::initializeVulkan()
     {
-        return vulkanEng::streq(property.layerName, name);
-    }
-
-    bool IsLayerSupported(gsl::span<VkLayerProperties> layers, gsl::czstring name)
-    {
-        return std::any_of(layers.begin(), layers.end(),
-                           std::bind_front(LayerMatchesName, name));
-    }
-
-    bool Graphics::areAllLayersSupported(gsl::span<gsl::czstring> layers)
-    {
-        std::vector<VkLayerProperties> supported_layers = getSupportedValidationLayers();
-
-        return std::all_of(layers.begin(), layers.end(),
-            [&](gsl::czstring name) { return IsLayerSupported(supported_layers, name); });
+        createInstance();
+        setupDebugMessenger();
     }
 }
