@@ -12,6 +12,19 @@ namespace vulkanEng
         ~Graphics();
 
     private:
+
+        struct QueueFamilyIndices
+        {
+            std::optional<std::uint32_t> graphics_family = std::nullopt;
+            std::optional<std::uint32_t> presentation_family = std::nullopt;
+
+            bool IsValid() const
+            {
+                return graphics_family.has_value();
+            }
+        };
+        
+
         void initializeVulkan();
         void createInstance();
         void setupDebugMessenger();
@@ -25,6 +38,7 @@ namespace vulkanEng
         static std::vector<VkLayerProperties> getSupportedValidationLayers();
         bool areAllLayersSupported(gsl::span<gsl::czstring> layers);
 
+        QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
         bool IsDeviceSuitable(VkPhysicalDevice device);
         std::vector<VkPhysicalDevice> getAvailableDevices();
 

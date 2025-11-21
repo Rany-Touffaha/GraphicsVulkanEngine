@@ -53,7 +53,6 @@ namespace vulkanEng
         } else {
             spdlog::error("Vulkan Error: {}", callback_data->pMessage);
         }
-        
         return VK_FALSE;
     }
 
@@ -261,15 +260,31 @@ namespace vulkanEng
 
     #pragma region DEVICES_AND_QUEUES
 
+    Graphics::QueueFamilyIndices Graphics::findQueueFamilies(VkPhysicalDevice device)
+    {
+        uint32_t queue_family_count = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, nullptr);
+
+        std::vector<VkQueueFamilyProperties> families(queue_family_count);
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, families.data());
+
+        auto graphics_family_it =
+            std::find_if(families.begin(), families.end(),
+                [&](const VkQueueFamilyProperties& props) {
+                    return props.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT);
+                });
+        
+        QueueFamilyIndices result;
+        result.graphics_family = graphics_family_it - families.begin();
+
+        return result;
+    }
+
     bool Graphics::IsDeviceSuitable(VkPhysicalDevice device)
     {
-        VkPhysicalDeviceProperties device_properties;
-        vkGetPhysicalDeviceProperties(device, &device_properties);
+        QueueFamilyIndices families = findQueueFamilies(device);
 
-        VkPhysicalDeviceFeatures device_features;
-        vkGetPhysicalDeviceFeatures(device, &device_features);
-
-        return true;
+        return families.IsValid();
     }
 
     void Graphics::pickPhysicalDevice()
@@ -282,14 +297,8 @@ namespace vulkanEng
             spdlog::error("No suitable GPU found that matches the criteria.");
             std::exit(EXIT_FAILURE);
         }
-
-        for (VkPhysicalDevice device : devices)
-        {
-            VkPhysicalDeviceProperties device_properties;
-            vkGetPhysicalDeviceProperties(device, &device_properties);
-            spdlog::info(device_properties.deviceName);
-        }
         
+        physical_device_ = devices[0];
     }
 
     std::vector<VkPhysicalDevice> Graphics::getAvailableDevices()
