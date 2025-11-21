@@ -17,6 +17,7 @@ namespace vulkanEng
 
         static gsl::span<gsl::czstring> getSuggestedInstanceExtensions();
         static std::vector<VkExtensionProperties> getSupportedInstanceExtensions();
+        static bool areAllExtensionsSupported(gsl::span<gsl::czstring> extensions);
 
         VkInstance instance_ = nullptr;
         gsl::not_null<Window*> window_;

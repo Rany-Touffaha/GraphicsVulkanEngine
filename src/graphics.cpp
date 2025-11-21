@@ -42,18 +42,9 @@ namespace vulkanEng
             extensions.push_back("VK_KHR_portability_enumeration");
         }
 
-        std::vector<VkExtensionProperties> supported_extensions = getSupportedInstanceExtensions();
-
-        auto is_extension_supported = [&supported_extensions](gsl::czstring name) {
-            return std::any_of(supported_extensions.begin(), supported_extensions.end(),
-                               [name](const VkExtensionProperties& property) {
-                                   return strcmp(property.extensionName, name) == 0;
-                               });
-        };
-
-        if (!std::all_of(suggested_extensions.begin(), suggested_extensions.end(), is_extension_supported))
+        if(!areAllExtensionsSupported(suggested_extensions))
         {
-            std::exit(EXIT_FAILURE);    
+            std::exit(EXIT_FAILURE);
         }
         
         VkApplicationInfo app_info = {};
@@ -104,5 +95,19 @@ namespace vulkanEng
         std::vector<VkExtensionProperties> properties(count);
         vkEnumerateInstanceExtensionProperties(nullptr, &count, properties.data());
         return properties;
+    }
+
+    bool Graphics::areAllExtensionsSupported(gsl::span<gsl::czstring> extensions)
+    {
+        std::vector<VkExtensionProperties> supported_extensions = getSupportedInstanceExtensions();
+
+        auto is_extension_supported = [&supported_extensions](gsl::czstring name) {
+            return std::any_of(supported_extensions.begin(), supported_extensions.end(),
+                               [name](const VkExtensionProperties& property) {
+                                   return vulkanEng::streq(property.extensionName, name);
+                               });
+        };
+
+        return std::all_of(extensions.begin(), extensions.end(), is_extension_supported);
     }
 }
