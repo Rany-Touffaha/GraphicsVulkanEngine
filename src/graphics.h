@@ -42,10 +42,13 @@ namespace vulkanEng
         bool IsDeviceSuitable(VkPhysicalDevice device);
         std::vector<VkPhysicalDevice> getAvailableDevices();
 
-        VkInstance instance_ = nullptr;
-        VkPhysicalDevice physical_device_ = nullptr;
-        VkDevice logical_device_ = nullptr;
+        VkInstance instance_ = VK_NULL_HANDLE;
         VkDebugUtilsMessengerEXT debug_messenger_;
+
+        VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
+        VkDevice logical_device_ = VK_NULL_HANDLE;
+        VkQueue graphics_queue_ = VK_NULL_HANDLE;
+
         gsl::not_null<Window*> window_;
         bool validation_enabled_ = true;
     };
