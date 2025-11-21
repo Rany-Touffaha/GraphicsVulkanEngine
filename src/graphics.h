@@ -14,12 +14,17 @@ namespace vulkanEng
     private:
         void initializeVulkan();
         void createInstance();
+        std::vector<gsl::czstring> getRequiredInstanceExtensions();
 
         static gsl::span<gsl::czstring> getSuggestedInstanceExtensions();
         static std::vector<VkExtensionProperties> getSupportedInstanceExtensions();
         static bool areAllExtensionsSupported(gsl::span<gsl::czstring> extensions);
 
+        static std::vector<VkLayerProperties> getSupportedValidationLayers();
+        bool areAllLayersSupported(gsl::span<gsl::czstring> layers);
+
         VkInstance instance_ = nullptr;
         gsl::not_null<Window*> window_;
+        bool validation_enabled_ = true;
     };
 }
