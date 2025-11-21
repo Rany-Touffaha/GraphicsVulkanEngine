@@ -14,7 +14,9 @@ namespace vulkanEng
     private:
         void initializeVulkan();
         void createInstance();
-        gsl::span<gsl::czstring> getSuggestedExtensions();
+
+        static gsl::span<gsl::czstring> getSuggestedInstanceExtensions();
+        static std::vector<VkExtensionProperties> getSupportedInstanceExtensions();
 
         VkInstance instance_ = nullptr;
         gsl::not_null<Window*> window_;

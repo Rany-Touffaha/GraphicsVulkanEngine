@@ -29,7 +29,7 @@ namespace vulkanEng
     #define VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR 0x00000001
     #endif
     {
-        gsl::span<gsl::czstring> suggested_extensions = getSuggestedExtensions();
+        gsl::span<gsl::czstring> suggested_extensions = getSuggestedInstanceExtensions();
         std::vector<const char*> extensions(suggested_extensions.begin(), suggested_extensions.end());
         bool found_portability = false;
         for (const char* ext : extensions) {
@@ -42,6 +42,20 @@ namespace vulkanEng
             extensions.push_back("VK_KHR_portability_enumeration");
         }
 
+        std::vector<VkExtensionProperties> supported_extensions = getSupportedInstanceExtensions();
+
+        auto is_extension_supported = [&supported_extensions](gsl::czstring name) {
+            return std::any_of(supported_extensions.begin(), supported_extensions.end(),
+                               [name](const VkExtensionProperties& property) {
+                                   return strcmp(property.extensionName, name) == 0;
+                               });
+        };
+
+        if (!std::all_of(suggested_extensions.begin(), suggested_extensions.end(), is_extension_supported))
+        {
+            std::exit(EXIT_FAILURE);    
+        }
+        
         VkApplicationInfo app_info = {};
         app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         app_info.pNext = nullptr;
@@ -70,11 +84,25 @@ namespace vulkanEng
         std::cout << "Vulkan instance created successfully" << std::endl;
     }
 
-    gsl::span<gsl::czstring> Graphics::getSuggestedExtensions()
+    gsl::span<gsl::czstring> Graphics::getSuggestedInstanceExtensions()
     {
         uint32_t glfw_extension_count = 0;
         gsl::czstring* glfw_extensions;
         glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
         return {glfw_extensions, glfw_extension_count};
+    }
+
+    std::vector<VkExtensionProperties> Graphics::getSupportedInstanceExtensions()
+    {
+        uint32_t count;
+        vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
+
+        if(count == 0) {
+            return {};
+        }
+
+        std::vector<VkExtensionProperties> properties(count);
+        vkEnumerateInstanceExtensionProperties(nullptr, &count, properties.data());
+        return properties;
     }
 }
