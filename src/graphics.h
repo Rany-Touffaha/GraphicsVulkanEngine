@@ -15,6 +15,7 @@ namespace vulkanEng
         void initializeVulkan();
         void createInstance();
         void setupDebugMessenger();
+        void pickPhysicalDevice();
         std::vector<gsl::czstring> getRequiredInstanceExtensions();
 
         static gsl::span<gsl::czstring> getSuggestedInstanceExtensions();
@@ -24,7 +25,11 @@ namespace vulkanEng
         static std::vector<VkLayerProperties> getSupportedValidationLayers();
         bool areAllLayersSupported(gsl::span<gsl::czstring> layers);
 
+        bool IsDeviceSuitable(VkPhysicalDevice device);
+        std::vector<VkPhysicalDevice> getAvailableDevices();
+
         VkInstance instance_ = nullptr;
+        VkPhysicalDevice physical_device_ = nullptr;
         VkDebugUtilsMessengerEXT debug_messenger_;
         gsl::not_null<Window*> window_;
         bool validation_enabled_ = true;

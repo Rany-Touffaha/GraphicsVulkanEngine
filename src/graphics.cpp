@@ -259,6 +259,57 @@ namespace vulkanEng
 
     #pragma endregion
 
+    #pragma region DEVICES_AND_QUEUES
+
+    bool Graphics::IsDeviceSuitable(VkPhysicalDevice device)
+    {
+        VkPhysicalDeviceProperties device_properties;
+        vkGetPhysicalDeviceProperties(device, &device_properties);
+
+        VkPhysicalDeviceFeatures device_features;
+        vkGetPhysicalDeviceFeatures(device, &device_features);
+
+        return true;
+    }
+
+    void Graphics::pickPhysicalDevice()
+    {
+        std::vector<VkPhysicalDevice> devices = getAvailableDevices();
+
+        std::erase_if(devices, std::not_fn(std::bind_front(&Graphics::IsDeviceSuitable, this)));
+
+        if(devices.empty()) {
+            spdlog::error("No suitable GPU found that matches the criteria.");
+            std::exit(EXIT_FAILURE);
+        }
+
+        for (VkPhysicalDevice device : devices)
+        {
+            VkPhysicalDeviceProperties device_properties;
+            vkGetPhysicalDeviceProperties(device, &device_properties);
+            spdlog::info(device_properties.deviceName);
+        }
+        
+    }
+
+    std::vector<VkPhysicalDevice> Graphics::getAvailableDevices()
+    {
+        uint32_t device_count = 0;
+        vkEnumeratePhysicalDevices(instance_, &device_count, nullptr);
+
+        if (device_count == 0) {
+            spdlog::error("Failed to find GPUs with Vulkan support.");
+            return {};
+        }
+
+        std::vector<VkPhysicalDevice> devices(device_count);
+        vkEnumeratePhysicalDevices(instance_, &device_count, devices.data());
+        return devices;
+    }
+
+    #pragma endregion
+
+
     Graphics::Graphics(gsl::not_null<Window*> window)
         : window_(window)
     {
@@ -285,5 +336,6 @@ namespace vulkanEng
     {
         createInstance();
         setupDebugMessenger();
+        pickPhysicalDevice();
     }
 }
