@@ -5,6 +5,35 @@
 #include <vulkan/vulkan.h>
 #include <spdlog/spdlog.h>
 
+VKAPI_ATTR VkResult VKAPI_CALL vkCreateDebugUtilsMessengerEXT(
+    VkInstance                                  instance,
+    const VkDebugUtilsMessengerCreateInfoEXT*   info,
+    const VkAllocationCallbacks*                allocator,
+    VkDebugUtilsMessengerEXT*                   debug_messenger)
+{
+    PFN_vkCreateDebugUtilsMessengerEXT function = 
+        reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
+    
+    if (function != nullptr) {
+        return function(instance, info, allocator, debug_messenger);
+    } else {
+        return VK_ERROR_EXTENSION_NOT_PRESENT;
+    }
+}
+
+VKAPI_ATTR void VKAPI_CALL vkDestroyDebugUtilsMessengerEXT(
+    VkInstance                                  instance,
+    VkDebugUtilsMessengerEXT                    debug_messenger,
+    const VkAllocationCallbacks*                allocator)
+{
+    PFN_vkDestroyDebugUtilsMessengerEXT function =
+        reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
+    
+    if (function != nullptr) {
+        function(instance, debug_messenger, allocator);
+    }
+}
+
 namespace vulkanEng
 {
     static VKAPI_ATTR VkBool32 VKAPI_CALL ValidationCallback(
@@ -49,6 +78,11 @@ namespace vulkanEng
     Graphics::~Graphics()
     {
         if(instance_ != nullptr) {
+
+            if(debug_messenger_ != nullptr) {
+                vkDestroyDebugUtilsMessengerEXT(instance_, debug_messenger_, nullptr);
+            }
+
             vkDestroyInstance(instance_, nullptr);
         }
     }
@@ -56,6 +90,7 @@ namespace vulkanEng
     void Graphics::initializeVulkan()
     {
         createInstance();
+        setupDebugMessenger();
     }
 
     void Graphics::createInstance()
@@ -114,6 +149,26 @@ namespace vulkanEng
         }
 
         std::cout << "Vulkan instance created successfully" << std::endl;
+    }
+
+    void Graphics::setupDebugMessenger()
+    {
+        if (!validation_enabled_) {
+            return;
+        }
+
+        VkDebugUtilsMessengerCreateInfoEXT info = GetCreateMessengerInfo();
+
+        VkResult result = vkCreateDebugUtilsMessengerEXT(
+            instance_,
+            &info,
+            nullptr,
+            &debug_messenger_);
+        
+        if (result != VK_SUCCESS) {
+            spdlog::error("Failed to set up debug messenger: {}", static_cast<int>(result));
+            return;
+        }
     }
 
     gsl::span<gsl::czstring> Graphics::getSuggestedInstanceExtensions()

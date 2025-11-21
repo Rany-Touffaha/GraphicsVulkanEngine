@@ -14,6 +14,7 @@ namespace vulkanEng
     private:
         void initializeVulkan();
         void createInstance();
+        void setupDebugMessenger();
         std::vector<gsl::czstring> getRequiredInstanceExtensions();
 
         static gsl::span<gsl::czstring> getSuggestedInstanceExtensions();
@@ -24,6 +25,7 @@ namespace vulkanEng
         bool areAllLayersSupported(gsl::span<gsl::czstring> layers);
 
         VkInstance instance_ = nullptr;
+        VkDebugUtilsMessengerEXT debug_messenger_;
         gsl::not_null<Window*> window_;
         bool validation_enabled_ = true;
     };
