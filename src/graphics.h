@@ -29,6 +29,7 @@ namespace vulkanEng
         void setupDebugMessenger();
         void pickPhysicalDevice();
         void createLogicalDeviceAndQueues();
+        void createSurface();
         std::vector<gsl::czstring> getRequiredInstanceExtensions();
 
         static gsl::span<gsl::czstring> getSuggestedInstanceExtensions();
@@ -48,6 +49,8 @@ namespace vulkanEng
         VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
         VkDevice logical_device_ = VK_NULL_HANDLE;
         VkQueue graphics_queue_ = VK_NULL_HANDLE;
+
+        VkSurfaceKHR surface_ = VK_NULL_HANDLE;
 
         gsl::not_null<Window*> window_;
         bool validation_enabled_ = true;

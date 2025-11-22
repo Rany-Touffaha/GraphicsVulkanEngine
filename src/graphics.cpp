@@ -364,6 +364,24 @@ namespace vulkanEng
     #pragma endregion
 
 
+    #pragma region PRESENTATION
+
+    void Graphics::createSurface()
+    {
+        VkResult result = glfwCreateWindowSurface(
+            instance_,
+            window_->getHandle(),
+            nullptr,
+            &surface_);
+
+        if (result != VK_SUCCESS) {
+            std::exit(EXIT_FAILURE);
+        }
+    }
+
+
+    #pragma endregion
+
     Graphics::Graphics(gsl::not_null<Window*> window)
         : window_(window)
     {
@@ -376,13 +394,17 @@ namespace vulkanEng
 
     Graphics::~Graphics()
     {
-        if(logical_device_ != nullptr) {
+        if(logical_device_ != VK_NULL_HANDLE) {
             vkDestroyDevice(logical_device_, nullptr);
         }
 
-        if(instance_ != nullptr) {
+        if(instance_ != VK_NULL_HANDLE) {
+            if(surface_ != VK_NULL_HANDLE) {
+                vkDestroySurfaceKHR(instance_, surface_, nullptr);
+            }
 
-            if(debug_messenger_ != nullptr) {
+
+            if(debug_messenger_ != VK_NULL_HANDLE) {
                 vkDestroyDebugUtilsMessengerEXT(instance_, debug_messenger_, nullptr);
             }
 
@@ -396,5 +418,6 @@ namespace vulkanEng
         setupDebugMessenger();
         pickPhysicalDevice();
         createLogicalDeviceAndQueues();
+        createSurface();
     }
 }
