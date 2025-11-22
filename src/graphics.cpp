@@ -551,6 +551,17 @@ namespace vulkanEng
         }
     }
 
+    std::uint32_t Graphics::chooseSwapImageCount(const VkSurfaceCapabilitiesKHR& capabilities)
+    {
+        std::uint32_t image_count = capabilities.minImageCount + 1;
+
+        if(capabilities.maxImageCount > 0 && image_count > capabilities.maxImageCount) {
+            image_count = capabilities.maxImageCount;
+        }
+
+        return image_count;
+    }
+
     void Graphics::createSwapChain()
     {
         SwapChainProperties properties = getSwapChainProperties(physical_device_);
@@ -558,6 +569,48 @@ namespace vulkanEng
         VkSurfaceFormatKHR surface_format = chooseSwapSurfaceFormat(properties.formats);
         VkPresentModeKHR present_mode = chooseSwapPresentMode(properties.present_modes);
         VkExtent2D extent = chooseSwapExtent(properties.capabilities);
+        std::uint32_t image_count = chooseSwapImageCount(properties.capabilities);
+
+        VkSwapchainCreateInfoKHR info = {};
+        info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        info.surface = surface_;
+        info.minImageCount = image_count;
+        info.imageFormat = surface_format.format;
+        info.imageColorSpace = surface_format.colorSpace;
+        info.imageExtent = extent;
+        info.imageArrayLayers = 1;
+        info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        info.presentMode = present_mode;
+        info.preTransform = properties.capabilities.currentTransform;
+        info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        info.clipped = VK_TRUE;
+        info.oldSwapchain = VK_NULL_HANDLE;
+
+        QueueFamilyIndices indices = findQueueFamilies(physical_device_);
+
+        if(indices.graphics_family != indices.presentation_family) {
+            std::array<std::uint32_t, 2> family_indices = {
+                indices.graphics_family.value(),
+                indices.presentation_family.value()
+            };
+
+            info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+            info.queueFamilyIndexCount = family_indices.size();
+            info.pQueueFamilyIndices = family_indices.data();
+        } else {
+            info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        }
+
+        VkResult result = vkCreateSwapchainKHR(
+            logical_device_,
+            &info,
+            nullptr,
+            &swap_chain_);
+        
+        if (result != VK_SUCCESS) {
+            spdlog::error("Failed to create swap chain: {}", static_cast<int>(result));
+            std::exit(EXIT_FAILURE);
+        }
     }
 
     #pragma endregion
@@ -575,6 +628,10 @@ namespace vulkanEng
     Graphics::~Graphics()
     {
         if(logical_device_ != VK_NULL_HANDLE) {
+            if(swap_chain_ != VK_NULL_HANDLE) {
+                vkDestroySwapchainKHR(logical_device_, swap_chain_, nullptr);
+            }
+
             vkDestroyDevice(logical_device_, nullptr);
         }
 

@@ -62,6 +62,7 @@ namespace vulkanEng
         VkSurfaceFormatKHR chooseSwapSurfaceFormat(gsl::span<VkSurfaceFormatKHR> formats);
         VkPresentModeKHR chooseSwapPresentMode(gsl::span<VkPresentModeKHR> modes);
         VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+        std::uint32_t chooseSwapImageCount(const VkSurfaceCapabilitiesKHR& capabilities);
 
         std::array<gsl::czstring, 1> required_device_extensions_ = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -76,6 +77,7 @@ namespace vulkanEng
         VkQueue present_queue_ = VK_NULL_HANDLE;
 
         VkSurfaceKHR surface_ = VK_NULL_HANDLE;
+        VkSwapchainKHR swap_chain_ = VK_NULL_HANDLE;
 
         gsl::not_null<Window*> window_;
         bool validation_enabled_ = true;
