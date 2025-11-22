@@ -566,21 +566,21 @@ namespace vulkanEng
     {
         SwapChainProperties properties = getSwapChainProperties(physical_device_);
 
-        VkSurfaceFormatKHR surface_format = chooseSwapSurfaceFormat(properties.formats);
-        VkPresentModeKHR present_mode = chooseSwapPresentMode(properties.present_modes);
-        VkExtent2D extent = chooseSwapExtent(properties.capabilities);
+        surface_format_ = chooseSwapSurfaceFormat(properties.formats);
+        present_mode_ = chooseSwapPresentMode(properties.present_modes);
+        extent_ = chooseSwapExtent(properties.capabilities);
         std::uint32_t image_count = chooseSwapImageCount(properties.capabilities);
 
         VkSwapchainCreateInfoKHR info = {};
         info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
         info.surface = surface_;
         info.minImageCount = image_count;
-        info.imageFormat = surface_format.format;
-        info.imageColorSpace = surface_format.colorSpace;
-        info.imageExtent = extent;
+        info.imageFormat = surface_format_.format;
+        info.imageColorSpace = surface_format_.colorSpace;
+        info.imageExtent = extent_;
         info.imageArrayLayers = 1;
         info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-        info.presentMode = present_mode;
+        info.presentMode = present_mode_;
         info.preTransform = properties.capabilities.currentTransform;
         info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
         info.clipped = VK_TRUE;
@@ -611,6 +611,20 @@ namespace vulkanEng
             spdlog::error("Failed to create swap chain: {}", static_cast<int>(result));
             std::exit(EXIT_FAILURE);
         }
+
+        std::uint32_t actual_image_count;
+        vkGetSwapchainImagesKHR(
+            logical_device_, 
+            swap_chain_, 
+            &actual_image_count, 
+            nullptr);
+
+        swap_chain_images_.resize(actual_image_count);
+        vkGetSwapchainImagesKHR(
+            logical_device_, 
+            swap_chain_, 
+            &actual_image_count, 
+            swap_chain_images_.data());
     }
 
     #pragma endregion

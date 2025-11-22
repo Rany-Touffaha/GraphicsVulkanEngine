@@ -78,6 +78,10 @@ namespace vulkanEng
 
         VkSurfaceKHR surface_ = VK_NULL_HANDLE;
         VkSwapchainKHR swap_chain_ = VK_NULL_HANDLE;
+        VkSurfaceFormatKHR surface_format_;
+        VkPresentModeKHR present_mode_;
+        VkExtent2D extent_;
+        std::vector<VkImage> swap_chain_images_;
 
         gsl::not_null<Window*> window_;
         bool validation_enabled_ = true;
