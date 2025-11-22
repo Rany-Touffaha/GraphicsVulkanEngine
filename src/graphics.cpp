@@ -296,6 +296,47 @@ namespace vulkanEng
         return result;
     }
 
+    Graphics::SwapChainProperties Graphics::getSwapChainProperties(VkPhysicalDevice device)
+    {
+        SwapChainProperties properties;
+
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+            device,
+            surface_,
+            &properties.capabilities);
+
+        uint32_t format_count;
+        vkGetPhysicalDeviceSurfaceFormatsKHR(
+            device,
+            surface_,
+            &format_count,
+            nullptr);
+
+        properties.formats.resize(format_count);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(
+            device,
+            surface_,
+            &format_count,
+            properties.formats.data());
+
+        uint32_t modes_count;
+        vkGetPhysicalDeviceSurfacePresentModesKHR(
+            device,
+            surface_,
+            &modes_count,
+            nullptr);
+
+
+        properties.present_modes.resize(modes_count);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(
+            device,
+            surface_,
+            &modes_count,
+            properties.present_modes.data());
+
+        return properties;
+    }
+
     std::vector<VkExtensionProperties> Graphics::getDeviceAvailableExtensions(VkPhysicalDevice device)
     {
         uint32_t available_extensions_count = 0;
@@ -322,7 +363,8 @@ namespace vulkanEng
     {
         QueueFamilyIndices families = findQueueFamilies(device);
 
-        return families.IsValid() && AreAllDeviceExtensionsSupported(device);
+        return families.IsValid() && AreAllDeviceExtensionsSupported(device) &&
+               getSwapChainProperties(device).IsValid();
     }
 
     void Graphics::pickPhysicalDevice()

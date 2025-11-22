@@ -23,6 +23,18 @@ namespace vulkanEng
                 return graphics_family.has_value() && presentation_family.has_value();
             }
         };
+
+        struct SwapChainProperties
+        {
+            VkSurfaceCapabilitiesKHR capabilities;
+            std::vector<VkSurfaceFormatKHR> formats;
+            std::vector<VkPresentModeKHR> present_modes;
+
+            bool IsValid() const
+            {
+                return !formats.empty() && !present_modes.empty();
+            }
+        };
         
         void initializeVulkan();
         void createInstance();
@@ -40,6 +52,7 @@ namespace vulkanEng
         bool areAllLayersSupported(gsl::span<gsl::czstring> layers);
 
         QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+        SwapChainProperties getSwapChainProperties(VkPhysicalDevice device);
         bool IsDeviceSuitable(VkPhysicalDevice device);
         std::vector<VkPhysicalDevice> getAvailableDevices();
         bool AreAllDeviceExtensionsSupported(VkPhysicalDevice device);
