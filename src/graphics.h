@@ -42,6 +42,12 @@ namespace vulkanEng
         QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
         bool IsDeviceSuitable(VkPhysicalDevice device);
         std::vector<VkPhysicalDevice> getAvailableDevices();
+        bool AreAllDeviceExtensionsSupported(VkPhysicalDevice device);
+        std::vector<VkExtensionProperties> getDeviceAvailableExtensions(VkPhysicalDevice device);
+
+        std::array<gsl::czstring, 1> required_device_extensions_ = {
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME
+        };
 
         VkInstance instance_ = VK_NULL_HANDLE;
         VkDebugUtilsMessengerEXT debug_messenger_;

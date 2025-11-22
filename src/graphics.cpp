@@ -296,11 +296,33 @@ namespace vulkanEng
         return result;
     }
 
+    std::vector<VkExtensionProperties> Graphics::getDeviceAvailableExtensions(VkPhysicalDevice device)
+    {
+        uint32_t available_extensions_count = 0;
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &available_extensions_count, nullptr);
+
+        std::vector<VkExtensionProperties> available_extensions(available_extensions_count);
+        vkEnumerateDeviceExtensionProperties(
+            device, nullptr, &available_extensions_count, available_extensions.data());
+        
+        return available_extensions;
+    }
+
+    bool Graphics::AreAllDeviceExtensionsSupported(VkPhysicalDevice device)
+    {
+        std::vector<VkExtensionProperties> available_extensions = getDeviceAvailableExtensions(device);
+
+        return std::all_of(
+            required_device_extensions_.begin(),
+            required_device_extensions_.end(),
+            std::bind_front(IsExtensionSupported, available_extensions));
+    }
+
     bool Graphics::IsDeviceSuitable(VkPhysicalDevice device)
     {
         QueueFamilyIndices families = findQueueFamilies(device);
 
-        return families.IsValid();
+        return families.IsValid() && AreAllDeviceExtensionsSupported(device);
     }
 
     void Graphics::pickPhysicalDevice()
@@ -365,7 +387,9 @@ namespace vulkanEng
         device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         device_info.queueCreateInfoCount = queue_create_infos.size();
         device_info.pQueueCreateInfos = queue_create_infos.data();
-        device_info.enabledExtensionCount = 0;
+        device_info.pEnabledFeatures = &required_features;
+        device_info.enabledExtensionCount = required_device_extensions_.size();
+        device_info.ppEnabledExtensionNames = required_device_extensions_.data();
         device_info.enabledLayerCount = 0;
 
         VkResult result = vkCreateDevice(
