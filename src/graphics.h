@@ -20,7 +20,7 @@ namespace vulkanEng
 
             bool IsValid() const
             {
-                return graphics_family.has_value();
+                return graphics_family.has_value() && presentation_family.has_value();
             }
         };
         
@@ -49,6 +49,7 @@ namespace vulkanEng
         VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
         VkDevice logical_device_ = VK_NULL_HANDLE;
         VkQueue graphics_queue_ = VK_NULL_HANDLE;
+        VkQueue present_queue_ = VK_NULL_HANDLE;
 
         VkSurfaceKHR surface_ = VK_NULL_HANDLE;
 
