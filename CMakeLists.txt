@@ -11,6 +11,8 @@ if(APPLE)
     set(MOLTENVK_INCLUDE_DIR "${MOLTENVK_DIR}/include")
 endif()
 
+include(cmake/shaders.cmake)
+
 include(FetchContent)
 
 FetchContent_Declare(
@@ -72,5 +74,12 @@ target_include_directories(GraphicsVulkanEngine PRIVATE "${CMAKE_CURRENT_SOURCE_
 
 target_compile_features(GraphicsVulkanEngine PRIVATE cxx_std_20)
 
-target_precompile_headers(GraphicsVulkanEngine PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/precomp.h"
+target_precompile_headers(GraphicsVulkanEngine PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/precomp.h")
+
+file(GLOB_RECURSE ShaderSources CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.vert"
+    "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.frag"
+
 )
+add_shaders(VulkanEngineShaders ${ShaderSources})
+add_dependencies(GraphicsVulkanEngine VulkanEngineShaders)
