@@ -42,6 +42,7 @@ namespace vulkanEng
         void pickPhysicalDevice();
         void createLogicalDeviceAndQueues();
         void createSurface();
+        void createSwapChain();
         std::vector<gsl::czstring> getRequiredInstanceExtensions();
 
         static gsl::span<gsl::czstring> getSuggestedInstanceExtensions();
@@ -57,6 +58,10 @@ namespace vulkanEng
         std::vector<VkPhysicalDevice> getAvailableDevices();
         bool AreAllDeviceExtensionsSupported(VkPhysicalDevice device);
         std::vector<VkExtensionProperties> getDeviceAvailableExtensions(VkPhysicalDevice device);
+
+        VkSurfaceFormatKHR chooseSwapSurfaceFormat(gsl::span<VkSurfaceFormatKHR> formats);
+        VkPresentModeKHR chooseSwapPresentMode(gsl::span<VkPresentModeKHR> modes);
+        VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
         std::array<gsl::czstring, 1> required_device_extensions_ = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME

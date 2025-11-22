@@ -478,6 +478,87 @@ namespace vulkanEng
         }
     }
 
+    bool isRgbaTypeFormat(const VkSurfaceFormatKHR& format_properties)
+    {
+        return format_properties.format == VK_FORMAT_R8G8B8A8_SRGB ||
+               format_properties.format == VK_FORMAT_B8G8R8A8_SRGB;
+    }
+
+    bool isSrgbColorSpace(const VkSurfaceFormatKHR& format_properties)
+    {
+        return format_properties.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+    }
+
+    bool isCorrectFormat(const VkSurfaceFormatKHR& format_properties)
+    {
+        return isRgbaTypeFormat(format_properties) &&
+               isSrgbColorSpace(format_properties);
+    }
+
+    VkSurfaceFormatKHR Graphics::chooseSwapSurfaceFormat(gsl::span<VkSurfaceFormatKHR> formats)
+    {
+        if(formats.size() == 1 && formats[0].format == VK_FORMAT_UNDEFINED) {
+            return {VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+        }
+
+        auto it = std::find_if(formats.begin(), formats.end(), isCorrectFormat);
+
+        if (it != formats.end()) {
+            return *it;
+        }
+
+        return formats[0];
+    }
+
+    bool isMailboxPresentMode(const VkPresentModeKHR& mode)
+    {
+        return mode == VK_PRESENT_MODE_MAILBOX_KHR;
+    }
+
+    VkPresentModeKHR Graphics::chooseSwapPresentMode(gsl::span<VkPresentModeKHR> present_modes)
+    {
+        if(std::any_of(present_modes.begin(), present_modes.end(), isMailboxPresentMode)) {
+            return VK_PRESENT_MODE_MAILBOX_KHR;
+        }
+
+        return VK_PRESENT_MODE_FIFO_KHR;
+    }
+
+    VkExtent2D Graphics::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities)
+    {
+        constexpr std::uint32_t kInvalidSize = std::numeric_limits<std::uint32_t>::max();
+
+        if(capabilities.currentExtent.width != kInvalidSize) {
+            return capabilities.currentExtent;
+        } else {
+            glm::ivec2 size = window_->getFramebufferSize();
+            VkExtent2D actual_extent = {
+                static_cast<std::uint32_t>(size.x),
+                static_cast<std::uint32_t>(size.y)
+            };
+
+            actual_extent.width = std::clamp(
+                actual_extent.width,
+                capabilities.minImageExtent.width,
+                capabilities.maxImageExtent.width);
+
+            actual_extent.height = std::clamp(
+                actual_extent.height,
+                capabilities.minImageExtent.height,
+                capabilities.maxImageExtent.height);
+
+            return actual_extent;
+        }
+    }
+
+    void Graphics::createSwapChain()
+    {
+        SwapChainProperties properties = getSwapChainProperties(physical_device_);
+
+        VkSurfaceFormatKHR surface_format = chooseSwapSurfaceFormat(properties.formats);
+        VkPresentModeKHR present_mode = chooseSwapPresentMode(properties.present_modes);
+        VkExtent2D extent = chooseSwapExtent(properties.capabilities);
+    }
 
     #pragma endregion
 
@@ -518,5 +599,6 @@ namespace vulkanEng
         createSurface();
         pickPhysicalDevice();
         createLogicalDeviceAndQueues();
+        createSwapChain();
     }
 }

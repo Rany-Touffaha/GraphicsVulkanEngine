@@ -28,6 +28,13 @@ namespace vulkanEng
        return window_size;
    }
 
+    glm::ivec2 Window::getFramebufferSize() const
+    {
+         glm::ivec2 framebuffer_size;
+         glfwGetFramebufferSize(window_, &framebuffer_size.x, &framebuffer_size.y);
+         return framebuffer_size;
+    }
+
    bool Window::shouldClose() const{
          return glfwWindowShouldClose(window_);
    }

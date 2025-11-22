@@ -11,6 +11,7 @@ namespace vulkanEng
         ~Window();
 
         glm::ivec2 getWindowSize() const;
+        glm::ivec2 getFramebufferSize() const;
         bool shouldClose() const;
         GLFWwindow* getHandle() const;
 
