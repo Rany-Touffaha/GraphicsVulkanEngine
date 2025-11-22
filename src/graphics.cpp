@@ -6,38 +6,38 @@
 #include <spdlog/spdlog.h>
 #include <set>
 
-#pragma region VK_FUNCTION_EXT_IMPL
+// #pragma region VK_FUNCTION_EXT_IMPL
 
-VKAPI_ATTR VkResult VKAPI_CALL vkCreateDebugUtilsMessengerEXT(
-    VkInstance                                  instance,
-    const VkDebugUtilsMessengerCreateInfoEXT*   info,
-    const VkAllocationCallbacks*                allocator,
-    VkDebugUtilsMessengerEXT*                   debug_messenger)
-{
-    PFN_vkCreateDebugUtilsMessengerEXT function = 
-        reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
+// VKAPI_ATTR VkResult VKAPI_CALL vkCreateDebugUtilsMessengerEXT(
+//     VkInstance                                  instance,
+//     const VkDebugUtilsMessengerCreateInfoEXT*   info,
+//     const VkAllocationCallbacks*                allocator,
+//     VkDebugUtilsMessengerEXT*                   debug_messenger)
+// {
+//     PFN_vkCreateDebugUtilsMessengerEXT function = 
+//         reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
     
-    if (function != nullptr) {
-        return function(instance, info, allocator, debug_messenger);
-    } else {
-        return VK_ERROR_EXTENSION_NOT_PRESENT;
-    }
-}
+//     if (function != nullptr) {
+//         return function(instance, info, allocator, debug_messenger);
+//     } else {
+//         return VK_ERROR_EXTENSION_NOT_PRESENT;
+//     }
+// }
 
-VKAPI_ATTR void VKAPI_CALL vkDestroyDebugUtilsMessengerEXT(
-    VkInstance                                  instance,
-    VkDebugUtilsMessengerEXT                    debug_messenger,
-    const VkAllocationCallbacks*                allocator)
-{
-    PFN_vkDestroyDebugUtilsMessengerEXT function =
-        reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
+// VKAPI_ATTR void VKAPI_CALL vkDestroyDebugUtilsMessengerEXT(
+//     VkInstance                                  instance,
+//     VkDebugUtilsMessengerEXT                    debug_messenger,
+//     const VkAllocationCallbacks*                allocator)
+// {
+//     PFN_vkDestroyDebugUtilsMessengerEXT function =
+//         reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
     
-    if (function != nullptr) {
-        function(instance, debug_messenger, allocator);
-    }
-}
+//     if (function != nullptr) {
+//         function(instance, debug_messenger, allocator);
+//     }
+// }
 
-#pragma endregion
+// #pragma endregion
 
 namespace vulkanEng
 {
@@ -107,20 +107,23 @@ namespace vulkanEng
     void Graphics::setupDebugMessenger()
     {
         if (!validation_enabled_) {
+            spdlog::info("Validation layers not enabled, skipping debug messenger setup");
             return;
         }
 
         VkDebugUtilsMessengerCreateInfoEXT info = GetCreateMessengerInfo();
 
-        VkResult result = vkCreateDebugUtilsMessengerEXT(
-            instance_,
-            &info,
-            nullptr,
-            &debug_messenger_);
-        
-        if (result != VK_SUCCESS) {
-            spdlog::error("Failed to set up debug messenger: {}", static_cast<int>(result));
-            return;
+        auto function = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+            instance_, "vkCreateDebugUtilsMessengerEXT");
+        if (function != nullptr) {
+            VkResult result = function(instance_, &info, nullptr, &debug_messenger_);
+            if (result != VK_SUCCESS) {
+                spdlog::error("Failed to set up debug messenger: {}", static_cast<int>(result));
+                return;
+            }
+            spdlog::info("Debug messenger set up successfully");
+        } else {
+            spdlog::error("Failed to load vkCreateDebugUtilsMessengerEXT function pointer");
         }
     }
 
@@ -184,6 +187,7 @@ namespace vulkanEng
         }
 
         std::cout << "Vulkan instance created successfully" << std::endl;
+        spdlog::info("Vulkan instance created successfully");
     }
 
     gsl::span<gsl::czstring> Graphics::getSuggestedInstanceExtensions()
@@ -379,6 +383,7 @@ namespace vulkanEng
         }
         
         physical_device_ = devices[0];
+        spdlog::info("Physical device picked successfully");
     }
 
     std::vector<VkPhysicalDevice> Graphics::getAvailableDevices()
@@ -445,6 +450,7 @@ namespace vulkanEng
             spdlog::error("Failed to create logical device: {}", static_cast<int>(result));
             std::exit(EXIT_FAILURE);
         }
+        spdlog::info("Logical device and queues created successfully");
 
         vkGetDeviceQueue(
             logical_device_,
@@ -467,6 +473,10 @@ namespace vulkanEng
 
     void Graphics::createSurface()
     {
+        if (!window_ || !window_->getHandle()) {
+            spdlog::error("Window handle is null. Cannot create Vulkan surface.");
+            std::exit(EXIT_FAILURE);
+        }
         VkResult result = glfwCreateWindowSurface(
             instance_,
             window_->getHandle(),
@@ -474,8 +484,10 @@ namespace vulkanEng
             &surface_);
 
         if (result != VK_SUCCESS) {
+            spdlog::error("Failed to create window surface: {}", static_cast<int>(result));
             std::exit(EXIT_FAILURE);
         }
+        spdlog::info("Window surface created successfully");
     }
 
     bool isRgbaTypeFormat(const VkSurfaceFormatKHR& format_properties)
@@ -611,6 +623,7 @@ namespace vulkanEng
             spdlog::error("Failed to create swap chain: {}", static_cast<int>(result));
             std::exit(EXIT_FAILURE);
         }
+        spdlog::info("Swap chain created successfully");
 
         std::uint32_t actual_image_count;
         vkGetSwapchainImagesKHR(
@@ -630,6 +643,7 @@ namespace vulkanEng
     void Graphics::createImageViews()
     {
         swap_chain_image_views_.resize(swap_chain_images_.size());
+        spdlog::info("Creating image views for swap chain images");
 
         auto image_view_it = swap_chain_image_views_.begin();
         for (VkImage image : swap_chain_images_)
@@ -660,6 +674,82 @@ namespace vulkanEng
             }
             std::next(image_view_it);
         }
+    }
+
+    #pragma endregion
+
+    #pragma region GRAPHICS_PIPELINE
+
+    VkShaderModule Graphics::createShaderModule(gsl::span<std::uint8_t> buffer)
+    {
+        if(buffer.empty()) {
+            return VK_NULL_HANDLE;
+        }
+
+        VkShaderModuleCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        info.codeSize = buffer.size();
+        info.pCode = reinterpret_cast<const std::uint32_t*>(buffer.data());
+
+        VkShaderModule shader_module;
+        VkResult result = vkCreateShaderModule(
+            logical_device_,
+            &info,
+            nullptr,
+            &shader_module);
+
+        if (result != VK_SUCCESS) {
+            return VK_NULL_HANDLE;
+        }
+
+        return shader_module;
+    }
+
+    void Graphics::createGraphicsPipeline()
+    {
+        std::vector<std::uint8_t> basic_vertex_data = readFile("VSCodeProjects/GraphicsVulkanEngine/build/basic.vert.spv");
+        VkShaderModule vertex_shader = createShaderModule(basic_vertex_data);
+        spdlog::info("Vertex shader module created: {}", vertex_shader != VK_NULL_HANDLE);
+        if (vertex_shader != VK_NULL_HANDLE) {
+            gsl::final_action __destroy_vertex([this, vertex_shader]() {
+                vkDestroyShaderModule(logical_device_, vertex_shader, nullptr);
+            });
+        } else {
+            spdlog::error("Vertex shader module creation failed. Check if the file exists.");
+        }
+
+        std::vector<std::uint8_t> basic_fragment_data = readFile("VSCodeProjects/GraphicsVulkanEngine/build/basic.frag.spv");
+        VkShaderModule fragment_shader = createShaderModule(basic_fragment_data);
+        spdlog::info("Fragment shader module created: {}", fragment_shader != VK_NULL_HANDLE);
+        if (fragment_shader != VK_NULL_HANDLE) {
+            gsl::final_action __destroy_fragment([this, fragment_shader]() {
+                vkDestroyShaderModule(logical_device_, fragment_shader, nullptr);
+            });
+        } else {
+            spdlog::error("Fragment shader module creation failed. Check if the file exists.");
+        }
+
+        if(vertex_shader == VK_NULL_HANDLE || fragment_shader == VK_NULL_HANDLE) {
+            spdlog::error("Failed to create graphics pipeline due to shader module creation failure.");
+            std::exit(EXIT_FAILURE);
+        }
+
+        VkPipelineShaderStageCreateInfo vertex_stage_info = {};
+        vertex_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vertex_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
+        vertex_stage_info.module = vertex_shader;
+        vertex_stage_info.pName = "main";
+
+        VkPipelineShaderStageCreateInfo fragment_stage_info = {};
+        fragment_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        fragment_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        fragment_stage_info.module = fragment_shader;
+        fragment_stage_info.pName = "main";
+
+        std::array<VkPipelineShaderStageCreateInfo, 2> stage_infos = {
+            vertex_stage_info,
+            fragment_stage_info
+        };
     }
 
     #pragma endregion
@@ -710,5 +800,6 @@ namespace vulkanEng
         pickPhysicalDevice();
         createLogicalDeviceAndQueues();
         createSwapChain();
+        createGraphicsPipeline();
     }
 }

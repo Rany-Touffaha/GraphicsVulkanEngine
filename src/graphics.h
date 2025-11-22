@@ -44,6 +44,8 @@ namespace vulkanEng
         void createSurface();
         void createSwapChain();
         void createImageViews();
+        void createGraphicsPipeline();
+
         std::vector<gsl::czstring> getRequiredInstanceExtensions();
 
         static gsl::span<gsl::czstring> getSuggestedInstanceExtensions();
@@ -64,6 +66,8 @@ namespace vulkanEng
         VkPresentModeKHR chooseSwapPresentMode(gsl::span<VkPresentModeKHR> modes);
         VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
         std::uint32_t chooseSwapImageCount(const VkSurfaceCapabilitiesKHR& capabilities);
+
+        VkShaderModule createShaderModule(gsl::span<std::uint8_t> buffer);
 
         std::array<gsl::czstring, 1> required_device_extensions_ = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME

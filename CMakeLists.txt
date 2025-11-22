@@ -5,10 +5,8 @@ find_package(Vulkan REQUIRED)
 
 # MoltenVK setup
 if(APPLE)
-    find_library(MOLTENVK_LIBRARY MoltenVK REQUIRED)
-    get_filename_component(MOLTENVK_LIB_DIR "${MOLTENVK_LIBRARY}" DIRECTORY)
-    get_filename_component(MOLTENVK_DIR "${MOLTENVK_LIB_DIR}/../.." ABSOLUTE)
-    set(MOLTENVK_INCLUDE_DIR "${MOLTENVK_DIR}/include")
+    set(MOLTENVK_DYLIB "/usr/local/lib/libMoltenVK.dylib")
+    set(MOLTENVK_INCLUDE_DIR "/usr/local/lib/MoltenVK.xcframework/macos-arm64_x86_64/include")
 endif()
 
 include(cmake/shaders.cmake)
@@ -65,8 +63,18 @@ target_link_libraries(GraphicsVulkanEngine PRIVATE glfw)
 target_link_libraries(GraphicsVulkanEngine PRIVATE Microsoft.GSL::GSL)
 target_link_libraries(GraphicsVulkanEngine PRIVATE spdlog::spdlog)
 if(APPLE)
-    target_link_libraries(GraphicsVulkanEngine PRIVATE ${MOLTENVK_LIBRARY})
+    target_link_libraries(GraphicsVulkanEngine PRIVATE ${MOLTENVK_DYLIB})
     target_include_directories(GraphicsVulkanEngine PRIVATE ${MOLTENVK_INCLUDE_DIR})
+    find_library(METAL_FRAMEWORK Metal)
+    find_library(QUARTZCORE_FRAMEWORK QuartzCore)
+    find_library(IOSURFACE_FRAMEWORK IOSurface)
+    find_library(COREFRAMEWORK CoreFoundation)
+    target_link_libraries(GraphicsVulkanEngine PRIVATE
+        ${METAL_FRAMEWORK}
+        ${QUARTZCORE_FRAMEWORK}
+        ${IOSURFACE_FRAMEWORK}
+        ${COREFRAMEWORK}
+    )
 endif()
 
 target_include_directories(GraphicsVulkanEngine PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
