@@ -43,6 +43,7 @@ namespace vulkanEng
         void createLogicalDeviceAndQueues();
         void createSurface();
         void createSwapChain();
+        void createImageViews();
         std::vector<gsl::czstring> getRequiredInstanceExtensions();
 
         static gsl::span<gsl::czstring> getSuggestedInstanceExtensions();
@@ -82,6 +83,7 @@ namespace vulkanEng
         VkPresentModeKHR present_mode_;
         VkExtent2D extent_;
         std::vector<VkImage> swap_chain_images_;
+        std::vector<VkImageView> swap_chain_image_views_;
 
         gsl::not_null<Window*> window_;
         bool validation_enabled_ = true;
