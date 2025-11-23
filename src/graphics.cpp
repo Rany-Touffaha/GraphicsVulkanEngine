@@ -779,6 +779,27 @@ namespace vulkanEng
         viewport_info.pViewports = &viewport;
         viewport_info.scissorCount = 1;
         viewport_info.pScissors = &scissor;
+
+        VkPipelineVertexInputStateCreateInfo vertex_input_info = {};
+        vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        vertex_input_info.vertexBindingDescriptionCount = 0;
+        vertex_input_info.vertexAttributeDescriptionCount = 0;
+
+        VkPipelineInputAssemblyStateCreateInfo input_assembly_info = {};
+        input_assembly_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+        input_assembly_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        input_assembly_info.primitiveRestartEnable = VK_FALSE;
+
+
+        VkPipelineRasterizationStateCreateInfo rasterization_state_info = {};
+        rasterization_state_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        rasterization_state_info.depthClampEnable = VK_FALSE;
+        rasterization_state_info.rasterizerDiscardEnable = VK_FALSE;
+        rasterization_state_info.polygonMode = VK_POLYGON_MODE_FILL;
+        rasterization_state_info.lineWidth = 1.0f;
+        rasterization_state_info.cullMode = VK_CULL_MODE_NONE;
+        rasterization_state_info.frontFace = VK_FRONT_FACE_CLOCKWISE;
+        rasterization_state_info.depthBiasEnable = VK_FALSE;
     }
 
     #pragma endregion
