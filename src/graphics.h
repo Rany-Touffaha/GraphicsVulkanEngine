@@ -36,6 +36,7 @@ namespace vulkanEng
             }
         };
         
+        // Initialization
         void initializeVulkan();
         void createInstance();
         void setupDebugMessenger();
@@ -49,6 +50,11 @@ namespace vulkanEng
         void createFramebuffers();
         void createCommandPool();
         void createCommandBuffer();
+
+        // Rendering
+        void BeginCommands(std::uint32_t current_image_index);
+        void RenderTriangle();
+        void EndCommands();
 
         std::vector<gsl::czstring> getRequiredInstanceExtensions();
 
@@ -72,6 +78,9 @@ namespace vulkanEng
         std::uint32_t chooseSwapImageCount(const VkSurfaceCapabilitiesKHR& capabilities);
 
         VkShaderModule createShaderModule(gsl::span<std::uint8_t> buffer);
+
+        VkViewport getViewport();
+        VkRect2D getScissor();
 
         std::array<gsl::czstring, 2> required_device_extensions_ = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
