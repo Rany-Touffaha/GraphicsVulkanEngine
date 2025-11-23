@@ -906,6 +906,39 @@ namespace vulkanEng
 
     #pragma endregion
 
+    #pragma region DRAWING
+
+    void Graphics::createFramebuffers()
+    {
+        swap_chain_framebuffers_.resize(swap_chain_image_views_.size());
+
+        for (std::uint32_t i = 0; i < swap_chain_image_views_.size(); i++)
+        {
+            VkFramebufferCreateInfo info = {};
+            info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            info.renderPass = render_pass_;
+            info.attachmentCount = 1;
+            info.pAttachments = &swap_chain_image_views_[i];
+            info.width = extent_.width;
+            info.height = extent_.height;
+            info.layers = 1;
+
+            VkResult result = vkCreateFramebuffer(
+                logical_device_,
+                &info,
+                nullptr,
+                &swap_chain_framebuffers_[i]);
+
+            if (result != VK_SUCCESS) {
+                spdlog::error("Failed to create framebuffer: {}", static_cast<int>(result));
+                std::exit(EXIT_FAILURE);
+            }
+        }
+    }
+
+
+    #pragma endregion
+
     Graphics::Graphics(gsl::not_null<Window*> window)
         : window_(window)
     {
@@ -919,6 +952,10 @@ namespace vulkanEng
     Graphics::~Graphics()
     {
         if(logical_device_ != VK_NULL_HANDLE) {
+            for(VkFramebuffer framebuffer : swap_chain_framebuffers_) {
+                vkDestroyFramebuffer(logical_device_, framebuffer, nullptr);
+            }
+
             if (pipeline_ != VK_NULL_HANDLE)
             {
                 vkDestroyPipeline(logical_device_, pipeline_, nullptr);
@@ -967,5 +1004,6 @@ namespace vulkanEng
         createSwapChain();
         createRenderPass();
         createGraphicsPipeline();
+        createFramebuffers();
     }
 }

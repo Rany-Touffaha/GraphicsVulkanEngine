@@ -46,6 +46,7 @@ namespace vulkanEng
         void createImageViews();
         void createRenderPass();
         void createGraphicsPipeline();
+        void createFramebuffers();
 
         std::vector<gsl::czstring> getRequiredInstanceExtensions();
 
@@ -88,8 +89,10 @@ namespace vulkanEng
         VkSurfaceFormatKHR surface_format_;
         VkPresentModeKHR present_mode_;
         VkExtent2D extent_;
+
         std::vector<VkImage> swap_chain_images_;
         std::vector<VkImageView> swap_chain_image_views_;
+        std::vector<VkFramebuffer> swap_chain_framebuffers_;
 
         VkPipelineLayout pipeline_layout_ = VK_NULL_HANDLE;
         VkRenderPass render_pass_ = VK_NULL_HANDLE;
