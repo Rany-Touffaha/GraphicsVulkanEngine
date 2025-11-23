@@ -936,6 +936,45 @@ namespace vulkanEng
         }
     }
 
+    void Graphics::createCommandPool()
+    {
+        QueueFamilyIndices indices = findQueueFamilies(physical_device_);
+
+        VkCommandPoolCreateInfo pool_info = {};
+        pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        pool_info.queueFamilyIndex = indices.graphics_family.value();
+
+        VkResult result = vkCreateCommandPool(
+            logical_device_,
+            &pool_info,
+            nullptr,
+            &command_pool_);
+
+        if (result != VK_SUCCESS) {
+            spdlog::error("Failed to create command pool: {}", static_cast<int>(result));
+            std::exit(EXIT_FAILURE);
+        }
+    }
+
+    void Graphics::createCommandBuffer()
+    {
+        VkCommandBufferAllocateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        info.commandPool = command_pool_;
+        info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        info.commandBufferCount = 1;
+
+        VkResult result = vkAllocateCommandBuffers(
+            logical_device_,
+            &info,
+            &command_buffer_);
+
+        if (result != VK_SUCCESS) {
+            spdlog::error("Failed to allocate command buffer: {}", static_cast<int>(result));
+            std::exit(EXIT_FAILURE);
+        }
+    }
 
     #pragma endregion
 
@@ -952,6 +991,11 @@ namespace vulkanEng
     Graphics::~Graphics()
     {
         if(logical_device_ != VK_NULL_HANDLE) {
+            if (command_pool_ != VK_NULL_HANDLE)
+            {
+                vkDestroyCommandPool(logical_device_, command_pool_, nullptr);
+            }
+
             for(VkFramebuffer framebuffer : swap_chain_framebuffers_) {
                 vkDestroyFramebuffer(logical_device_, framebuffer, nullptr);
             }
@@ -1005,5 +1049,7 @@ namespace vulkanEng
         createRenderPass();
         createGraphicsPipeline();
         createFramebuffers();
+        createCommandPool();
+        createCommandBuffer();
     }
 }

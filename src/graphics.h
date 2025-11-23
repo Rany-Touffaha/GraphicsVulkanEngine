@@ -47,6 +47,8 @@ namespace vulkanEng
         void createRenderPass();
         void createGraphicsPipeline();
         void createFramebuffers();
+        void createCommandPool();
+        void createCommandBuffer();
 
         std::vector<gsl::czstring> getRequiredInstanceExtensions();
 
@@ -97,6 +99,9 @@ namespace vulkanEng
         VkPipelineLayout pipeline_layout_ = VK_NULL_HANDLE;
         VkRenderPass render_pass_ = VK_NULL_HANDLE;
         VkPipeline pipeline_ = VK_NULL_HANDLE;
+
+        VkCommandPool command_pool_ = VK_NULL_HANDLE;
+        VkCommandBuffer command_buffer_ = VK_NULL_HANDLE;
 
         gsl::not_null<Window*> window_;
         bool validation_enabled_ = true;
