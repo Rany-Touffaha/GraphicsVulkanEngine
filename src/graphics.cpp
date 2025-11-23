@@ -711,11 +711,7 @@ namespace vulkanEng
             readFile("VSCodeProjects/GraphicsVulkanEngine/build/basic.vert.spv");
         VkShaderModule vertex_shader = createShaderModule(basic_vertex_data);
         spdlog::info("Vertex shader module created: {}", vertex_shader != VK_NULL_HANDLE);
-        if (vertex_shader != VK_NULL_HANDLE) {
-            gsl::final_action __destroy_vertex([this, vertex_shader]() {
-                vkDestroyShaderModule(logical_device_, vertex_shader, nullptr);
-            });
-        } else {
+        if (vertex_shader == VK_NULL_HANDLE) {
             spdlog::error("Vertex shader module creation failed. Check if the file exists.");
         }
 
@@ -723,11 +719,7 @@ namespace vulkanEng
             readFile("VSCodeProjects/GraphicsVulkanEngine/build/basic.frag.spv");
         VkShaderModule fragment_shader = createShaderModule(basic_fragment_data);
         spdlog::info("Fragment shader module created: {}", fragment_shader != VK_NULL_HANDLE);
-        if (fragment_shader != VK_NULL_HANDLE) {
-            gsl::final_action __destroy_fragment([this, fragment_shader]() {
-                vkDestroyShaderModule(logical_device_, fragment_shader, nullptr);
-            });
-        } else {
+        if (fragment_shader == VK_NULL_HANDLE) {
             spdlog::error("Fragment shader module creation failed. Check if the file exists.");
         }
 
@@ -815,12 +807,11 @@ namespace vulkanEng
             VK_COLOR_COMPONENT_A_BIT;
         color_blend_attachment.blendEnable = VK_FALSE;
 
-        VkPipelineColorBlendStateCreateInfo color_blend_info = {};
-        color_blend_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-        color_blend_info.logicOpEnable = VK_FALSE;
-        color_blend_info.attachmentCount = 1;
-        color_blend_info.pAttachments = &color_blend_attachment;
-
+        VkPipelineColorBlendStateCreateInfo color_blending_info = {};
+        color_blending_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        color_blending_info.logicOpEnable = VK_FALSE;
+        color_blending_info.attachmentCount = 1;
+        color_blending_info.pAttachments = &color_blend_attachment;
         VkPipelineLayoutCreateInfo layout_info = {};
         layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         VkResult layout_result = vkCreatePipelineLayout(
@@ -832,6 +823,44 @@ namespace vulkanEng
         if (layout_result != VK_SUCCESS) {
             spdlog::error("Failed to create pipeline layout: {}", static_cast<int>(layout_result));
             std::exit(EXIT_FAILURE);
+        }
+
+        VkGraphicsPipelineCreateInfo pipeline_info = {};
+        pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        pipeline_info.stageCount = stage_infos.size();
+        pipeline_info.pStages = stage_infos.data();
+        pipeline_info.pVertexInputState = &vertex_input_info;
+        pipeline_info.pInputAssemblyState = &input_assembly_info;
+        pipeline_info.pViewportState = &viewport_info;
+        pipeline_info.pRasterizationState = &rasterization_state_info;
+        pipeline_info.pMultisampleState = &multisample_state_info;
+        pipeline_info.pDepthStencilState = nullptr;
+        pipeline_info.pColorBlendState = &color_blending_info;
+        pipeline_info.pDynamicState = &dynamic_state_info;
+        pipeline_info.layout = pipeline_layout_;
+        pipeline_info.renderPass = render_pass_;
+        pipeline_info.subpass = 0;
+
+        VkResult pipeline_result = vkCreateGraphicsPipelines(
+            logical_device_,
+            VK_NULL_HANDLE,
+            1,
+            &pipeline_info,
+            nullptr,
+            &pipeline_);
+
+        if (pipeline_result != VK_SUCCESS) {
+            spdlog::error("Failed to create graphics pipeline: {}", static_cast<int>(pipeline_result));
+            spdlog::error("logical_device_: {}", static_cast<void*>(logical_device_));
+            spdlog::error("pipeline_layout_: {}", static_cast<void*>(pipeline_layout_));
+            spdlog::error("render_pass_: {}", static_cast<void*>(render_pass_));
+            vkDestroyShaderModule(logical_device_, vertex_shader, nullptr);
+            vkDestroyShaderModule(logical_device_, fragment_shader, nullptr);
+            std::exit(EXIT_FAILURE);
+        } else {
+            spdlog::info("Graphics pipeline created successfully");
+            vkDestroyShaderModule(logical_device_, vertex_shader, nullptr);
+            vkDestroyShaderModule(logical_device_, fragment_shader, nullptr);
         }
     }
 
@@ -890,6 +919,11 @@ namespace vulkanEng
     Graphics::~Graphics()
     {
         if(logical_device_ != VK_NULL_HANDLE) {
+            if (pipeline_ != VK_NULL_HANDLE)
+            {
+                vkDestroyPipeline(logical_device_, pipeline_, nullptr);
+            }
+
             if(pipeline_layout_ != VK_NULL_HANDLE) {
                 vkDestroyPipelineLayout(logical_device_, pipeline_layout_, nullptr);
             }

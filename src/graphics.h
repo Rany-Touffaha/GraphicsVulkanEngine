@@ -70,8 +70,9 @@ namespace vulkanEng
 
         VkShaderModule createShaderModule(gsl::span<std::uint8_t> buffer);
 
-        std::array<gsl::czstring, 1> required_device_extensions_ = {
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME
+        std::array<gsl::czstring, 2> required_device_extensions_ = {
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+            "VK_KHR_portability_subset"
         };
 
         VkInstance instance_ = VK_NULL_HANDLE;
@@ -92,6 +93,7 @@ namespace vulkanEng
 
         VkPipelineLayout pipeline_layout_ = VK_NULL_HANDLE;
         VkRenderPass render_pass_ = VK_NULL_HANDLE;
+        VkPipeline pipeline_ = VK_NULL_HANDLE;
 
         gsl::not_null<Window*> window_;
         bool validation_enabled_ = true;
