@@ -750,6 +750,35 @@ namespace vulkanEng
             vertex_stage_info,
             fragment_stage_info
         };
+
+        std::array<VkDynamicState, 2> dynamic_states = {
+            VK_DYNAMIC_STATE_VIEWPORT,
+            VK_DYNAMIC_STATE_SCISSOR
+        };
+
+        VkPipelineDynamicStateCreateInfo dynamic_state_info = {};
+        dynamic_state_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        dynamic_state_info.dynamicStateCount = dynamic_states.size();
+        dynamic_state_info.pDynamicStates = dynamic_states.data(); 
+
+        VkViewport viewport = {};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = static_cast<float_t>(extent_.width);
+        viewport.height = static_cast<float_t>(extent_.height);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+
+        VkRect2D scissor = {};
+        scissor.offset = {0, 0};
+        scissor.extent = extent_;
+
+        VkPipelineViewportStateCreateInfo viewport_info = {};
+        viewport_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        viewport_info.viewportCount = 1;
+        viewport_info.pViewports = &viewport;
+        viewport_info.scissorCount = 1;
+        viewport_info.pScissors = &scissor;
     }
 
     #pragma endregion
