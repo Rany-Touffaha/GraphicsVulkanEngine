@@ -800,6 +800,37 @@ namespace vulkanEng
         rasterization_state_info.cullMode = VK_CULL_MODE_NONE;
         rasterization_state_info.frontFace = VK_FRONT_FACE_CLOCKWISE;
         rasterization_state_info.depthBiasEnable = VK_FALSE;
+
+        VkPipelineMultisampleStateCreateInfo multisample_state_info = {};
+        multisample_state_info.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        multisample_state_info.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+        VkPipelineColorBlendAttachmentState color_blend_attachment = {};
+        color_blend_attachment.colorWriteMask =
+            VK_COLOR_COMPONENT_R_BIT |
+            VK_COLOR_COMPONENT_G_BIT |
+            VK_COLOR_COMPONENT_B_BIT |
+            VK_COLOR_COMPONENT_A_BIT;
+        color_blend_attachment.blendEnable = VK_FALSE;
+
+        VkPipelineColorBlendStateCreateInfo color_blend_info = {};
+        color_blend_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        color_blend_info.logicOpEnable = VK_FALSE;
+        color_blend_info.attachmentCount = 1;
+        color_blend_info.pAttachments = &color_blend_attachment;
+
+        VkPipelineLayoutCreateInfo layout_info = {};
+        layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        VkResult layout_result = vkCreatePipelineLayout(
+            logical_device_,
+            &layout_info,
+            nullptr,
+            &pipeline_layout_);
+
+        if (layout_result != VK_SUCCESS) {
+            spdlog::error("Failed to create pipeline layout: {}", static_cast<int>(layout_result));
+            std::exit(EXIT_FAILURE);
+        }
     }
 
     #pragma endregion
@@ -817,6 +848,10 @@ namespace vulkanEng
     Graphics::~Graphics()
     {
         if(logical_device_ != VK_NULL_HANDLE) {
+            if(pipeline_layout_ != VK_NULL_HANDLE) {
+                vkDestroyPipelineLayout(logical_device_, pipeline_layout_, nullptr);
+            }
+
             for(VkImageView image_view : swap_chain_image_views_) {
                 vkDestroyImageView(logical_device_, image_view, nullptr);
             }

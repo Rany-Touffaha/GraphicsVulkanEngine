@@ -89,6 +89,8 @@ namespace vulkanEng
         std::vector<VkImage> swap_chain_images_;
         std::vector<VkImageView> swap_chain_image_views_;
 
+        VkPipelineLayout pipeline_layout_ = VK_NULL_HANDLE; 
+
         gsl::not_null<Window*> window_;
         bool validation_enabled_ = true;
     };
