@@ -1034,6 +1034,35 @@ namespace vulkanEng
         }
     }
 
+    void Graphics::createSignals()
+    {
+        VkSemaphoreCreateInfo semaphore_info = {};
+        semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+        VkFenceCreateInfo fence_info = {};
+        fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+        if(vkCreateSemaphore(
+            logical_device_,
+            &semaphore_info,
+            nullptr,
+            &image_available_signal_) != VK_SUCCESS ||
+           vkCreateSemaphore(
+            logical_device_,
+            &semaphore_info,
+            nullptr,
+            &render_finished_signal_) != VK_SUCCESS ||
+           vkCreateFence(
+            logical_device_,
+            &fence_info,
+            nullptr,
+            &still_rendering_fence_) != VK_SUCCESS) 
+        {
+            spdlog::error("Failed to create synchronization objects for a frame.");
+            std::exit(EXIT_FAILURE);
+        }
+    }
+
     #pragma endregion
 
     Graphics::Graphics(gsl::not_null<Window*> window)
@@ -1049,6 +1078,18 @@ namespace vulkanEng
     Graphics::~Graphics()
     {
         if(logical_device_ != VK_NULL_HANDLE) {
+            if(image_available_signal_ != VK_NULL_HANDLE) {
+                vkDestroySemaphore(logical_device_, image_available_signal_, nullptr);
+            }
+
+            if(render_finished_signal_ != VK_NULL_HANDLE) {
+                vkDestroySemaphore(logical_device_, render_finished_signal_, nullptr);
+            }
+
+            if(still_rendering_fence_ != VK_NULL_HANDLE) {
+                vkDestroyFence(logical_device_, still_rendering_fence_, nullptr);
+            }
+
             if (command_pool_ != VK_NULL_HANDLE)
             {
                 vkDestroyCommandPool(logical_device_, command_pool_, nullptr);
@@ -1109,5 +1150,6 @@ namespace vulkanEng
         createFramebuffers();
         createCommandPool();
         createCommandBuffer();
+        createSignals();
     }
 }

@@ -50,6 +50,7 @@ namespace vulkanEng
         void createFramebuffers();
         void createCommandPool();
         void createCommandBuffer();
+        void createSignals();
 
         // Rendering
         void BeginCommands(std::uint32_t current_image_index);
@@ -111,6 +112,10 @@ namespace vulkanEng
 
         VkCommandPool command_pool_ = VK_NULL_HANDLE;
         VkCommandBuffer command_buffer_ = VK_NULL_HANDLE;
+
+        VkSemaphore image_available_signal_ = VK_NULL_HANDLE;
+        VkSemaphore render_finished_signal_ = VK_NULL_HANDLE;
+        VkFence still_rendering_fence_ = VK_NULL_HANDLE;
 
         gsl::not_null<Window*> window_;
         bool validation_enabled_ = true;
