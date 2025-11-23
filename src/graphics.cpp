@@ -707,7 +707,8 @@ namespace vulkanEng
 
     void Graphics::createGraphicsPipeline()
     {
-        std::vector<std::uint8_t> basic_vertex_data = readFile("VSCodeProjects/GraphicsVulkanEngine/build/basic.vert.spv");
+        std::vector<std::uint8_t> basic_vertex_data = 
+            readFile("VSCodeProjects/GraphicsVulkanEngine/build/basic.vert.spv");
         VkShaderModule vertex_shader = createShaderModule(basic_vertex_data);
         spdlog::info("Vertex shader module created: {}", vertex_shader != VK_NULL_HANDLE);
         if (vertex_shader != VK_NULL_HANDLE) {
@@ -718,7 +719,8 @@ namespace vulkanEng
             spdlog::error("Vertex shader module creation failed. Check if the file exists.");
         }
 
-        std::vector<std::uint8_t> basic_fragment_data = readFile("VSCodeProjects/GraphicsVulkanEngine/build/basic.frag.spv");
+        std::vector<std::uint8_t> basic_fragment_data = 
+            readFile("VSCodeProjects/GraphicsVulkanEngine/build/basic.frag.spv");
         VkShaderModule fragment_shader = createShaderModule(basic_fragment_data);
         spdlog::info("Fragment shader module created: {}", fragment_shader != VK_NULL_HANDLE);
         if (fragment_shader != VK_NULL_HANDLE) {
@@ -833,6 +835,46 @@ namespace vulkanEng
         }
     }
 
+    void Graphics::createRenderPass()
+    {
+        VkAttachmentDescription color_attachment = {};
+        color_attachment.format = surface_format_.format;
+        color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+        VkAttachmentReference color_attachment_ref = {};
+        color_attachment_ref.attachment = 0;
+        color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkSubpassDescription main_subpass = {};
+        main_subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        main_subpass.colorAttachmentCount = 1;
+        main_subpass.pColorAttachments = &color_attachment_ref;
+
+        VkRenderPassCreateInfo render_pass_info = {};
+        render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        render_pass_info.attachmentCount = 1;
+        render_pass_info.pAttachments = &color_attachment;
+        render_pass_info.subpassCount = 1;
+        render_pass_info.pSubpasses = &main_subpass;
+
+        VkResult result = vkCreateRenderPass(
+            logical_device_,
+            &render_pass_info,
+            nullptr,
+            &render_pass_);
+
+        if (result != VK_SUCCESS) {
+            spdlog::error("Failed to create render pass: {}", static_cast<int>(result));
+            std::exit(EXIT_FAILURE);
+        }
+    }
+
     #pragma endregion
 
     Graphics::Graphics(gsl::not_null<Window*> window)
@@ -850,6 +892,10 @@ namespace vulkanEng
         if(logical_device_ != VK_NULL_HANDLE) {
             if(pipeline_layout_ != VK_NULL_HANDLE) {
                 vkDestroyPipelineLayout(logical_device_, pipeline_layout_, nullptr);
+            }
+
+            if(render_pass_ != VK_NULL_HANDLE) {
+                vkDestroyRenderPass(logical_device_, render_pass_, nullptr);
             }
 
             for(VkImageView image_view : swap_chain_image_views_) {
@@ -885,6 +931,7 @@ namespace vulkanEng
         pickPhysicalDevice();
         createLogicalDeviceAndQueues();
         createSwapChain();
+        createRenderPass();
         createGraphicsPipeline();
     }
 }

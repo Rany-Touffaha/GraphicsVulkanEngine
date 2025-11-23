@@ -44,6 +44,7 @@ namespace vulkanEng
         void createSurface();
         void createSwapChain();
         void createImageViews();
+        void createRenderPass();
         void createGraphicsPipeline();
 
         std::vector<gsl::czstring> getRequiredInstanceExtensions();
@@ -89,7 +90,8 @@ namespace vulkanEng
         std::vector<VkImage> swap_chain_images_;
         std::vector<VkImageView> swap_chain_image_views_;
 
-        VkPipelineLayout pipeline_layout_ = VK_NULL_HANDLE; 
+        VkPipelineLayout pipeline_layout_ = VK_NULL_HANDLE;
+        VkRenderPass render_pass_ = VK_NULL_HANDLE;
 
         gsl::not_null<Window*> window_;
         bool validation_enabled_ = true;
