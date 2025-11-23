@@ -11,7 +11,7 @@ namespace vulkanEng
         Graphics(gsl::not_null<Window*> window);
         ~Graphics();
 
-        void BeginFrame();
+        bool BeginFrame();
         void RenderTriangle();        
         void EndFrame();
 
@@ -55,6 +55,9 @@ namespace vulkanEng
         void createCommandPool();
         void createCommandBuffer();
         void createSignals();
+
+        void RecreateSwapChain();
+        void CleanupSwapChain();
 
         // Rendering
         void BeginCommands();

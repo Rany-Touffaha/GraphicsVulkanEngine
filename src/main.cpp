@@ -17,9 +17,10 @@ std::int32_t main(std::int32_t argc, gsl::zstring* argv)
     while (!window.shouldClose())
     {
         glfwPollEvents();
-        graphics.BeginFrame();
-        graphics.RenderTriangle();
-        graphics.EndFrame();
+        if(graphics.BeginFrame()) {
+            graphics.RenderTriangle();
+            graphics.EndFrame();
+        }
     }
     
     return EXIT_SUCCESS;

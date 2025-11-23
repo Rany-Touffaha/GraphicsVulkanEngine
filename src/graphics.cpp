@@ -1066,7 +1066,7 @@ namespace vulkanEng
         }
     }
 
-    void Graphics::BeginFrame()
+    bool Graphics::BeginFrame()
     {
         vkWaitForFences(
             logical_device_,
@@ -1075,12 +1075,9 @@ namespace vulkanEng
             VK_TRUE,
             UINT64_MAX);
 
-        vkResetFences(
-            logical_device_,
-            1,
-            &still_rendering_fence_);
 
-        VkResult result = vkAcquireNextImageKHR(
+
+        VkResult image_acquire_result = vkAcquireNextImageKHR(
             logical_device_,
             swap_chain_,
             UINT64_MAX,
@@ -1088,7 +1085,24 @@ namespace vulkanEng
             VK_NULL_HANDLE,
             &current_image_index_);
         
+        if (image_acquire_result == VK_ERROR_OUT_OF_DATE_KHR) {
+            RecreateSwapChain();
+            return false;
+        }
+
+        if (image_acquire_result != VK_SUCCESS && 
+            image_acquire_result != VK_SUBOPTIMAL_KHR)
+        {
+            throw std::runtime_error("Failed to acquire swap chain image.");
+        }
+
+        vkResetFences(
+            logical_device_,
+            1,
+            &still_rendering_fence_);
+        
         BeginCommands();
+        return true;
     }
 
     void Graphics::EndFrame()
@@ -1127,10 +1141,52 @@ namespace vulkanEng
         present_info.pSwapchains = &swap_chain_;
         present_info.pImageIndices = &current_image_index_;
         
-        vkQueuePresentKHR(present_queue_, &present_info);
+        VkResult result = vkQueuePresentKHR(present_queue_, &present_info);
+
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+            RecreateSwapChain();
+        } else if (result != VK_SUCCESS) {
+            throw std::runtime_error("Failed to present swap chain image.");
+        }
     }
 
     #pragma endregion
+
+    void Graphics::RecreateSwapChain()
+    {
+        glm::ivec2 size = window_->getFramebufferSize();
+        while (size.x == 0 || size.y == 0) {
+            size = window_->getFramebufferSize();
+            glfwWaitEvents();
+        }
+
+        vkDeviceWaitIdle(logical_device_);
+        CleanupSwapChain();
+
+        createSwapChain();
+        createImageViews();
+        createFramebuffers();
+    }
+
+    void Graphics::CleanupSwapChain()
+    {
+        if (logical_device_ == VK_NULL_HANDLE)
+        {
+            return;
+        }
+        
+        for(VkFramebuffer framebuffer : swap_chain_framebuffers_) {
+            vkDestroyFramebuffer(logical_device_, framebuffer, nullptr);
+        }
+
+        for(VkImageView image_view : swap_chain_image_views_) {
+            vkDestroyImageView(logical_device_, image_view, nullptr);
+        }
+
+        if(swap_chain_ != VK_NULL_HANDLE) {
+            vkDestroySwapchainKHR(logical_device_, swap_chain_, nullptr);
+        }
+    }
 
     Graphics::Graphics(gsl::not_null<Window*> window)
         : window_(window)
@@ -1146,6 +1202,8 @@ namespace vulkanEng
     {
         if(logical_device_ != VK_NULL_HANDLE) {
             vkDeviceWaitIdle(logical_device_);
+
+            CleanupSwapChain();
 
             if(image_available_signal_ != VK_NULL_HANDLE) {
                 vkDestroySemaphore(logical_device_, image_available_signal_, nullptr);
@@ -1164,10 +1222,6 @@ namespace vulkanEng
                 vkDestroyCommandPool(logical_device_, command_pool_, nullptr);
             }
 
-            for(VkFramebuffer framebuffer : swap_chain_framebuffers_) {
-                vkDestroyFramebuffer(logical_device_, framebuffer, nullptr);
-            }
-
             if (pipeline_ != VK_NULL_HANDLE)
             {
                 vkDestroyPipeline(logical_device_, pipeline_, nullptr);
@@ -1179,14 +1233,6 @@ namespace vulkanEng
 
             if(render_pass_ != VK_NULL_HANDLE) {
                 vkDestroyRenderPass(logical_device_, render_pass_, nullptr);
-            }
-
-            for(VkImageView image_view : swap_chain_image_views_) {
-                vkDestroyImageView(logical_device_, image_view, nullptr);
-            }
-
-            if(swap_chain_ != VK_NULL_HANDLE) {
-                vkDestroySwapchainKHR(logical_device_, swap_chain_, nullptr);
             }
 
             vkDestroyDevice(logical_device_, nullptr);
