@@ -6,39 +6,6 @@
 #include <spdlog/spdlog.h>
 #include <set>
 
-// #pragma region VK_FUNCTION_EXT_IMPL
-
-// VKAPI_ATTR VkResult VKAPI_CALL vkCreateDebugUtilsMessengerEXT(
-//     VkInstance                                  instance,
-//     const VkDebugUtilsMessengerCreateInfoEXT*   info,
-//     const VkAllocationCallbacks*                allocator,
-//     VkDebugUtilsMessengerEXT*                   debug_messenger)
-// {
-//     PFN_vkCreateDebugUtilsMessengerEXT function = 
-//         reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
-    
-//     if (function != nullptr) {
-//         return function(instance, info, allocator, debug_messenger);
-//     } else {
-//         return VK_ERROR_EXTENSION_NOT_PRESENT;
-//     }
-// }
-
-// VKAPI_ATTR void VKAPI_CALL vkDestroyDebugUtilsMessengerEXT(
-//     VkInstance                                  instance,
-//     VkDebugUtilsMessengerEXT                    debug_messenger,
-//     const VkAllocationCallbacks*                allocator)
-// {
-//     PFN_vkDestroyDebugUtilsMessengerEXT function =
-//         reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
-    
-//     if (function != nullptr) {
-//         function(instance, debug_messenger, allocator);
-//     }
-// }
-
-// #pragma endregion
-
 namespace vulkanEng
 {
     #pragma region VALIDATION_LAYERS
@@ -1156,8 +1123,6 @@ namespace vulkanEng
         }
     }
 
-    #pragma endregion
-
     void Graphics::RecreateSwapChain()
     {
         glm::ivec2 size = window_->getFramebufferSize();
@@ -1193,6 +1158,10 @@ namespace vulkanEng
             vkDestroySwapchainKHR(logical_device_, swap_chain_, nullptr);
         }
     }
+
+    #pragma endregion
+
+    #pragma region CLASS
 
     Graphics::Graphics(gsl::not_null<Window*> window)
         : window_(window)
@@ -1274,4 +1243,6 @@ namespace vulkanEng
         createCommandBuffer();
         createSignals();
     }
+
+    #pragma endregion
 }
