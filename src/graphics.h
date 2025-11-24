@@ -95,6 +95,9 @@ namespace vulkanEng
         std::uint32_t findMemoryType(std::uint32_t type_bits_filter,
             VkMemoryPropertyFlags required_properties);
 
+        VkCommandBuffer beginTransientCommandBuffer();
+        void endTransientCommandBuffer(VkCommandBuffer command_buffer);
+
         VkViewport getViewport();
         VkRect2D getScissor();
 

@@ -1281,6 +1281,49 @@ namespace vulkanEng
             0);
     }
 
+    VkCommandBuffer Graphics::beginTransientCommandBuffer()
+    {
+        VkCommandBufferAllocateInfo allocation_info = {};
+        allocation_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocation_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocation_info.commandPool = command_pool_;
+        allocation_info.commandBufferCount = 1;
+
+        VkCommandBuffer buffer;
+
+        vkAllocateCommandBuffers(
+            logical_device_,
+            &allocation_info,
+            &buffer);
+
+        VkCommandBufferBeginInfo begin_info = {};
+        begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+        vkBeginCommandBuffer(buffer, &begin_info);
+
+        return buffer;
+    }
+
+    void Graphics::endTransientCommandBuffer(VkCommandBuffer command_buffer)
+    {
+        vkEndCommandBuffer(command_buffer);
+
+        VkSubmitInfo submit_info = {};
+        submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submit_info.commandBufferCount = 1;
+        submit_info.pCommandBuffers = &command_buffer;
+
+        vkQueueSubmit(graphics_queue_, 1, &submit_info, VK_NULL_HANDLE);
+        vkQueueWaitIdle(graphics_queue_);
+
+        vkFreeCommandBuffers(
+            logical_device_,
+            command_pool_,
+            1,
+            &command_buffer);
+    }
+
     #pragma endregion
 
     #pragma region CLASS
