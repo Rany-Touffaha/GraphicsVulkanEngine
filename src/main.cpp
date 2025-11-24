@@ -14,14 +14,24 @@ std::int32_t main(std::int32_t argc, gsl::zstring* argv)
 
     vulkanEng::Graphics graphics(&window);
 
+    std::array<vulkanEng::Vertex, 3> vertices = {
+        vulkanEng::Vertex{glm::vec3{0.0f, -0.5f, 0.0f}, glm::vec3{1.0f, 0.0f, 0.0f}},
+        vulkanEng::Vertex{glm::vec3{0.5f, 0.5f, 0.0f}, glm::vec3{0.0f, 1.0f, 0.0f}},
+        vulkanEng::Vertex{glm::vec3{-0.5f, 0.5f, 0.0f}, glm::vec3{0.0f, 0.0f, 1.0f}}
+    };
+
+    vulkanEng::BufferHandle buffer = graphics.createVertexBuffer(vertices);
+
     while (!window.shouldClose())
     {
         glfwPollEvents();
         if(graphics.BeginFrame()) {
-            graphics.RenderTriangle();
+            graphics.RenderBuffer(buffer, vertices.size());
             graphics.EndFrame();
         }
     }
+
+    graphics.destroyVertexBuffer(buffer);
     
     return EXIT_SUCCESS;
 }

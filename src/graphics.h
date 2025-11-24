@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.h>
 #include <glfw_window.h>
 #include <vertex.h>
+#include <buffer_handle.h>
 
 namespace vulkanEng
 {
@@ -13,8 +14,11 @@ namespace vulkanEng
         ~Graphics();
 
         bool BeginFrame();
-        void RenderTriangle();        
+        void RenderBuffer(BufferHandle handle, std::uint32_t vertex_count);   
         void EndFrame();
+
+        BufferHandle createVertexBuffer(gsl::span<Vertex> vertices);
+        void destroyVertexBuffer(BufferHandle handle);
 
     private:
 
@@ -87,6 +91,9 @@ namespace vulkanEng
         std::uint32_t chooseSwapImageCount(const VkSurfaceCapabilitiesKHR& capabilities);
 
         VkShaderModule createShaderModule(gsl::span<std::uint8_t> buffer);
+
+        std::uint32_t findMemoryType(std::uint32_t type_bits_filter,
+            VkMemoryPropertyFlags required_properties);
 
         VkViewport getViewport();
         VkRect2D getScissor();
