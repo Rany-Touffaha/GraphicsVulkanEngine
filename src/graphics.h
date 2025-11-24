@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan.h>
 #include <glfw_window.h>
+#include <vertex.h>
 
 namespace vulkanEng
 {

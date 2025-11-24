@@ -732,16 +732,20 @@ namespace vulkanEng
         viewport_info.scissorCount = 1;
         viewport_info.pScissors = &scissor;
 
+        auto vertex_binding_description = Vertex::getBindingDescription();
+        auto vertex_attribute_descriptions = Vertex::getAttributeDescriptions();
+
         VkPipelineVertexInputStateCreateInfo vertex_input_info = {};
         vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertex_input_info.vertexBindingDescriptionCount = 0;
-        vertex_input_info.vertexAttributeDescriptionCount = 0;
+        vertex_input_info.vertexBindingDescriptionCount =  1;
+        vertex_input_info.pVertexBindingDescriptions = &vertex_binding_description;
+        vertex_input_info.vertexAttributeDescriptionCount = vertex_attribute_descriptions.size();
+        vertex_input_info.pVertexAttributeDescriptions = vertex_attribute_descriptions.data();
 
         VkPipelineInputAssemblyStateCreateInfo input_assembly_info = {};
         input_assembly_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
         input_assembly_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         input_assembly_info.primitiveRestartEnable = VK_FALSE;
-
 
         VkPipelineRasterizationStateCreateInfo rasterization_state_info = {};
         rasterization_state_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -1158,6 +1162,10 @@ namespace vulkanEng
             vkDestroySwapchainKHR(logical_device_, swap_chain_, nullptr);
         }
     }
+
+    #pragma endregion
+
+    #pragma region BUFFERS
 
     #pragma endregion
 
