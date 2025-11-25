@@ -1188,14 +1188,15 @@ namespace vulkanEng
         throw std::runtime_error("Failed to find suitable memory type.");
     }
 
-    BufferHandle Graphics::createVertexBuffer(gsl::span<Vertex> vertices)
+    BufferHandle Graphics::createBuffer(VkDeviceSize size,VkBufferUsageFlags usage, 
+        VkMemoryPropertyFlags properties)
     {
         BufferHandle handle = {};
 
         VkBufferCreateInfo buffer_info = {};
         buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        buffer_info.size = sizeof(Vertex) * vertices.size();
-        buffer_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        buffer_info.size = size;
+        buffer_info.usage = usage;
         buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
         VkResult result = vkCreateBuffer(
@@ -1204,7 +1205,7 @@ namespace vulkanEng
             nullptr,
             &handle.buffer);
         if (result != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create vertex buffer.");
+            throw std::runtime_error("Failed to create buffer.");
         }
 
         VkMemoryRequirements memory_requirements;
@@ -1216,8 +1217,7 @@ namespace vulkanEng
         std::uint32_t chosen_memory_type = 
             findMemoryType(
                 memory_requirements.memoryTypeBits,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | 
-                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+                properties);
         
         VkMemoryAllocateInfo allocation_info = {};
         allocation_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -1231,7 +1231,7 @@ namespace vulkanEng
             &handle.memory);
         
         if (allocation_result != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate vertex buffer memory.");
+            throw std::runtime_error("Failed to allocate buffer memory.");
         }
 
         vkBindBufferMemory(
@@ -1240,17 +1240,19 @@ namespace vulkanEng
             handle.memory,
             0);
         
+        return handle;
+
+    }
+
+    BufferHandle Graphics::createVertexBuffer(gsl::span<Vertex> vertices)
+    {
+        VkDeviceSize size = sizeof(Vertex) * vertices.size();
+        BufferHandle handle = createBuffer(size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        
         void* data;
-        vkMapMemory(
-            logical_device_,
-            handle.memory,
-            0,
-            buffer_info.size,
-            0,
-            &data);
-
-        std::memcpy(data, vertices.data(), buffer_info.size);
-
+        vkMapMemory(logical_device_, handle.memory, 0, size, 0, &data);
+        std::memcpy(data, vertices.data(), size);
         vkUnmapMemory(logical_device_, handle.memory);
 
         return handle;
