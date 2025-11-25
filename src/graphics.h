@@ -66,8 +66,8 @@ namespace vulkanEng
         void createCommandPool();
         void createCommandBuffer();
         void createSignals();
-        void createDescriptorSetLayout();
-        void createDescriptorPool();
+        void createDescriptorSetLayouts();
+        void createDescriptorPools();
         void createDescriptorSets();
 
         void RecreateSwapChain();
@@ -139,7 +139,6 @@ namespace vulkanEng
         VkPipelineLayout pipeline_layout_ = VK_NULL_HANDLE;
         VkRenderPass render_pass_ = VK_NULL_HANDLE;
         VkPipeline pipeline_ = VK_NULL_HANDLE;
-        VkDescriptorSetLayout descriptor_set_layout_ = VK_NULL_HANDLE;
 
         VkCommandPool command_pool_ = VK_NULL_HANDLE;
         VkCommandBuffer command_buffer_ = VK_NULL_HANDLE;
@@ -150,10 +149,14 @@ namespace vulkanEng
 
         std::uint32_t current_image_index_ = 0;
 
-        VkDescriptorPool descriptor_pool_ = VK_NULL_HANDLE;
-        VkDescriptorSet descriptor_set_ = VK_NULL_HANDLE;
+        VkDescriptorSetLayout uniform_set_layout_ = VK_NULL_HANDLE;
+        VkDescriptorPool uniform_pool_ = VK_NULL_HANDLE;
+        VkDescriptorSet uniform_set_ = VK_NULL_HANDLE;
         BufferHandle uniform_buffer_;
         void* uniform_buffer_location_;
+
+        VkDescriptorSetLayout texture_set_layout_ = VK_NULL_HANDLE;
+        VkDescriptorPool texture_pool_ = VK_NULL_HANDLE;
 
         gsl::not_null<Window*> window_;
         bool validation_enabled_ = true;
