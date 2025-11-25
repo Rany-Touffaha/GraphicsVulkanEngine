@@ -15,15 +15,16 @@ std::int32_t main(std::int32_t argc, gsl::zstring* argv)
 
     vulkanEng::Graphics graphics(&window);
 
-    std::array<vulkanEng::Vertex, 3> vertices = {
-        vulkanEng::Vertex{glm::vec3{0.0f, -0.5f, 0.0f}, glm::vec3{1.0f, 0.0f, 0.0f}},
-        vulkanEng::Vertex{glm::vec3{0.5f, 0.5f, 0.0f}, glm::vec3{0.0f, 1.0f, 0.0f}},
-        vulkanEng::Vertex{glm::vec3{-0.5f, 0.5f, 0.0f}, glm::vec3{0.0f, 0.0f, 1.0f}}
+    std::array<vulkanEng::Vertex, 4> vertices = {
+        vulkanEng::Vertex{glm::vec3{-0.5f, -0.5f, 0.0f}, glm::vec2{0.0f, 1.0f}},
+        vulkanEng::Vertex{glm::vec3{0.5f, -0.5f, 0.0f}, glm::vec2{1.0f, 1.0f}},
+        vulkanEng::Vertex{glm::vec3{-0.5f, 0.5f, 0.0f}, glm::vec2{0.0f, 0.0f}},
+        vulkanEng::Vertex{glm::vec3{0.5f, 0.5f, 0.0f}, glm::vec2{1.0f, 0.0f}},
     };
 
     vulkanEng::BufferHandle buffer = graphics.createVertexBuffer(vertices);
 
-    std::array<std::uint32_t, 3> indices = {0, 1, 2};
+    std::array<std::uint32_t, 6> indices = {0, 3, 2, 0, 1, 3};
 
     vulkanEng::BufferHandle index_buffer = graphics.createIndexBuffer(indices);
 
