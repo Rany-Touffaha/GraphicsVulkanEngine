@@ -28,6 +28,9 @@ std::int32_t main(std::int32_t argc, gsl::zstring* argv)
     vulkanEng::BufferHandle index_buffer = graphics.createIndexBuffer(indices);
 
     glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.0f));
+    glm::mat4 projection = glm::perspective(glm::radians(60.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+    graphics.SetViewProjection(view, projection);
 
     while (!window.shouldClose())
     {

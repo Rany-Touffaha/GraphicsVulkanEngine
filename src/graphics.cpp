@@ -790,6 +790,8 @@ namespace vulkanEng
         layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         layout_info.pushConstantRangeCount = 1;
         layout_info.pPushConstantRanges = &model_matrix_range;
+        layout_info.setLayoutCount = 1;
+        layout_info.pSetLayouts = &descriptor_set_layout_;
 
         VkResult layout_result = vkCreatePipelineLayout(
             logical_device_,
@@ -1043,6 +1045,32 @@ namespace vulkanEng
             &still_rendering_fence_) != VK_SUCCESS) 
         {
             spdlog::error("Failed to create synchronization objects for a frame.");
+            std::exit(EXIT_FAILURE);
+        }
+    }
+
+    void Graphics::createDescriptorSetLayout()
+    {
+        VkDescriptorSetLayoutBinding uniform_layout_binding = {};
+        uniform_layout_binding.binding = 0;
+        uniform_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        uniform_layout_binding.descriptorCount = 1;
+        uniform_layout_binding.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS;
+        uniform_layout_binding.pImmutableSamplers = nullptr;
+
+        VkDescriptorSetLayoutCreateInfo layout_info = {};
+        layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layout_info.bindingCount = 1;
+        layout_info.pBindings = &uniform_layout_binding;
+
+        VkResult result = vkCreateDescriptorSetLayout(
+            logical_device_,
+            &layout_info,
+            nullptr,
+            &descriptor_set_layout_);
+        
+        if (result != VK_SUCCESS) {
+            spdlog::error("Failed to create descriptor set layout: {}", static_cast<int>(result));
             std::exit(EXIT_FAILURE);
         }
     }
@@ -1392,6 +1420,16 @@ namespace vulkanEng
         
     }
 
+    void Graphics::SetViewProjection(glm::mat4 view, glm::mat4 projection)
+    {
+        UniformTransformations transformations = {view, projection};
+
+        std::memcpy(
+            uniform_buffer_location_,
+            &transformations,
+            sizeof(UniformTransformations));
+    }
+
     VkCommandBuffer Graphics::beginTransientCommandBuffer()
     {
         VkCommandBufferAllocateInfo allocation_info = {};
@@ -1435,6 +1473,24 @@ namespace vulkanEng
             &command_buffer);
     }
 
+    void Graphics::createUniformBuffers()
+    {
+        VkDeviceSize buffer_size = sizeof(UniformTransformations);
+
+        uniform_buffer_ = createBuffer(
+            buffer_size,
+            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        
+        vkMapMemory(
+            logical_device_,
+            uniform_buffer_.memory,
+            0,
+            buffer_size,
+            0,
+            &uniform_buffer_location_);
+    }
+
     #pragma endregion
 
     #pragma region CLASS
@@ -1455,6 +1511,12 @@ namespace vulkanEng
             vkDeviceWaitIdle(logical_device_);
 
             CleanupSwapChain();
+
+            destroyBuffer(uniform_buffer_);
+
+            if(descriptor_set_layout_ != VK_NULL_HANDLE) {
+                vkDestroyDescriptorSetLayout(logical_device_, descriptor_set_layout_, nullptr);
+            }
 
             if(image_available_signal_ != VK_NULL_HANDLE) {
                 vkDestroySemaphore(logical_device_, image_available_signal_, nullptr);
@@ -1512,12 +1574,14 @@ namespace vulkanEng
         createLogicalDeviceAndQueues();
         createSwapChain();
         createRenderPass();
+        createDescriptorSetLayout();
         createImageViews();
         createGraphicsPipeline();
         createFramebuffers();
         createCommandPool();
         createCommandBuffer();
         createSignals();
+        createUniformBuffers();
     }
 
     #pragma endregion

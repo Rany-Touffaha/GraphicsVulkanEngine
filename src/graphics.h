@@ -4,6 +4,7 @@
 #include <glfw_window.h>
 #include <vertex.h>
 #include <buffer_handle.h>
+#include <uniform_transformations.h>
 
 namespace vulkanEng
 {
@@ -15,6 +16,7 @@ namespace vulkanEng
 
         bool BeginFrame();
         void SetModelMatrix(glm::mat4 model);
+        void SetViewProjection(glm::mat4 view, glm::mat4 projection);
         void RenderBuffer(BufferHandle handle, std::uint32_t vertex_count);
         void RenderIndexedBuffer(BufferHandle index_buffer, 
             BufferHandle vertex_buffer, std::uint32_t count);
@@ -64,6 +66,7 @@ namespace vulkanEng
         void createCommandPool();
         void createCommandBuffer();
         void createSignals();
+        void createDescriptorSetLayout();
 
         void RecreateSwapChain();
         void CleanupSwapChain();
@@ -103,6 +106,7 @@ namespace vulkanEng
             VkMemoryPropertyFlags properties);
         VkCommandBuffer beginTransientCommandBuffer();
         void endTransientCommandBuffer(VkCommandBuffer command_buffer);
+        void createUniformBuffers();
 
         VkViewport getViewport();
         VkRect2D getScissor();
@@ -133,6 +137,7 @@ namespace vulkanEng
         VkPipelineLayout pipeline_layout_ = VK_NULL_HANDLE;
         VkRenderPass render_pass_ = VK_NULL_HANDLE;
         VkPipeline pipeline_ = VK_NULL_HANDLE;
+        VkDescriptorSetLayout descriptor_set_layout_ = VK_NULL_HANDLE;
 
         VkCommandPool command_pool_ = VK_NULL_HANDLE;
         VkCommandBuffer command_buffer_ = VK_NULL_HANDLE;
@@ -142,6 +147,9 @@ namespace vulkanEng
         VkFence still_rendering_fence_ = VK_NULL_HANDLE;
 
         std::uint32_t current_image_index_ = 0;
+
+        BufferHandle uniform_buffer_;
+        void* uniform_buffer_location_;
 
         gsl::not_null<Window*> window_;
         bool validation_enabled_ = true;
