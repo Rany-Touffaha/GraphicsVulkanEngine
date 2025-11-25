@@ -22,16 +22,22 @@ std::int32_t main(std::int32_t argc, gsl::zstring* argv)
 
     vulkanEng::BufferHandle buffer = graphics.createVertexBuffer(vertices);
 
+    std::array<std::uint32_t, 3> indices = {0, 1, 2};
+
+    vulkanEng::BufferHandle index_buffer = graphics.createIndexBuffer(indices);
+
     while (!window.shouldClose())
     {
         glfwPollEvents();
         if(graphics.BeginFrame()) {
-            graphics.RenderBuffer(buffer, vertices.size());
+            graphics.RenderIndexedBuffer(index_buffer, buffer,
+                indices.size());
             graphics.EndFrame();
         }
     }
 
     graphics.destroyBuffer(buffer);
+    graphics.destroyBuffer(index_buffer);
     
     return EXIT_SUCCESS;
 }

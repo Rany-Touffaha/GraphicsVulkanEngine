@@ -1244,6 +1244,43 @@ namespace vulkanEng
 
     }
 
+    BufferHandle Graphics::createIndexBuffer(gsl::span<std::uint32_t> indices)
+    {
+        VkDeviceSize size = sizeof(std::uint32_t) * indices.size();
+        BufferHandle staging_handle = createBuffer(
+            size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        
+        void* data;
+        vkMapMemory(logical_device_, staging_handle.memory, 0, size, 0, &data);
+        std::memcpy(data, indices.data(), size);
+        vkUnmapMemory(logical_device_, staging_handle.memory);
+
+        BufferHandle gpu_handle = createBuffer(size, 
+            VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+        VkCommandBuffer transient_command = beginTransientCommandBuffer();
+
+        VkBufferCopy copy_info = {};
+        copy_info.srcOffset = 0;
+        copy_info.dstOffset = 0;
+        copy_info.size = size;
+
+        vkCmdCopyBuffer(
+            transient_command,
+            staging_handle.buffer,
+            gpu_handle.buffer,
+            1,
+            &copy_info);
+
+        endTransientCommandBuffer(transient_command);
+
+        destroyBuffer(staging_handle);
+
+        return gpu_handle;
+    }
+
     BufferHandle Graphics::createVertexBuffer(gsl::span<Vertex> vertices)
     {
         VkDeviceSize size = sizeof(Vertex) * vertices.size();
@@ -1260,21 +1297,21 @@ namespace vulkanEng
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-        VkCommandBuffer command_buffer = beginTransientCommandBuffer();
+        VkCommandBuffer transient_command = beginTransientCommandBuffer();
 
-        VkBufferCopy copy_region = {};
-        copy_region.srcOffset = 0;
-        copy_region.dstOffset = 0;
-        copy_region.size = size;
+        VkBufferCopy copy_info = {};
+        copy_info.srcOffset = 0;
+        copy_info.dstOffset = 0;
+        copy_info.size = size;
 
         vkCmdCopyBuffer(
-            command_buffer,
+            transient_command,
             staging_handle.buffer,
             gpu_handle.buffer,
             1,
-            &copy_region);
+            &copy_info);
 
-        endTransientCommandBuffer(command_buffer);
+        endTransientCommandBuffer(transient_command);
 
         destroyBuffer(staging_handle);
 
@@ -1302,6 +1339,32 @@ namespace vulkanEng
             command_buffer_,
             vertex_count,
             1,
+            0,
+            0);
+    }
+
+    void Graphics::RenderIndexedBuffer(BufferHandle index_buffer, 
+        BufferHandle vertex_buffer, std::uint32_t count)
+    {
+        VkDeviceSize offset = 0;
+        vkCmdBindVertexBuffers(
+            command_buffer_,
+            0,
+            1,
+            &vertex_buffer.buffer,
+            &offset);
+        
+        vkCmdBindIndexBuffer(
+            command_buffer_,
+            index_buffer.buffer,
+            0,
+            VK_INDEX_TYPE_UINT32);
+
+        vkCmdDrawIndexed(
+            command_buffer_,
+            count,
+            1,
+            0,
             0,
             0);
     }

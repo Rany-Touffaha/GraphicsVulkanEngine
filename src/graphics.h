@@ -14,10 +14,13 @@ namespace vulkanEng
         ~Graphics();
 
         bool BeginFrame();
-        void RenderBuffer(BufferHandle handle, std::uint32_t vertex_count);   
+        void RenderBuffer(BufferHandle handle, std::uint32_t vertex_count);
+        void RenderIndexedBuffer(BufferHandle index_buffer, 
+            BufferHandle vertex_buffer, std::uint32_t count);
         void EndFrame();
 
         BufferHandle createVertexBuffer(gsl::span<Vertex> vertices);
+        BufferHandle createIndexBuffer(gsl::span<std::uint32_t> indices);
         void destroyBuffer(BufferHandle handle);
 
     private:
