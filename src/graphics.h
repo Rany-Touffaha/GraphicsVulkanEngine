@@ -69,6 +69,7 @@ namespace vulkanEng
         void createDescriptorSetLayouts();
         void createDescriptorPools();
         void createDescriptorSets();
+        void createTextureSampler();
 
         void RecreateSwapChain();
         void CleanupSwapChain();
@@ -157,6 +158,7 @@ namespace vulkanEng
 
         VkDescriptorSetLayout texture_set_layout_ = VK_NULL_HANDLE;
         VkDescriptorPool texture_pool_ = VK_NULL_HANDLE;
+        VkSampler texture_sampler_ = VK_NULL_HANDLE;
 
         gsl::not_null<Window*> window_;
         bool validation_enabled_ = true;
