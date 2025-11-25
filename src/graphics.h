@@ -18,7 +18,7 @@ namespace vulkanEng
         void EndFrame();
 
         BufferHandle createVertexBuffer(gsl::span<Vertex> vertices);
-        void destroyVertexBuffer(BufferHandle handle);
+        void destroyBuffer(BufferHandle handle);
 
     private:
 

@@ -1247,18 +1247,41 @@ namespace vulkanEng
     BufferHandle Graphics::createVertexBuffer(gsl::span<Vertex> vertices)
     {
         VkDeviceSize size = sizeof(Vertex) * vertices.size();
-        BufferHandle handle = createBuffer(size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
+        BufferHandle staging_handle = createBuffer(
+            size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         
         void* data;
-        vkMapMemory(logical_device_, handle.memory, 0, size, 0, &data);
+        vkMapMemory(logical_device_, staging_handle.memory, 0, size, 0, &data);
         std::memcpy(data, vertices.data(), size);
-        vkUnmapMemory(logical_device_, handle.memory);
+        vkUnmapMemory(logical_device_, staging_handle.memory);
 
-        return handle;
+        BufferHandle gpu_handle = createBuffer(size, 
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+        VkCommandBuffer command_buffer = beginTransientCommandBuffer();
+
+        VkBufferCopy copy_region = {};
+        copy_region.srcOffset = 0;
+        copy_region.dstOffset = 0;
+        copy_region.size = size;
+
+        vkCmdCopyBuffer(
+            command_buffer,
+            staging_handle.buffer,
+            gpu_handle.buffer,
+            1,
+            &copy_region);
+
+        endTransientCommandBuffer(command_buffer);
+
+        destroyBuffer(staging_handle);
+
+        return gpu_handle;
     }
     
-    void Graphics::destroyVertexBuffer(BufferHandle handle)
+    void Graphics::destroyBuffer(BufferHandle handle)
     {
         vkDeviceWaitIdle(logical_device_);
         vkDestroyBuffer(logical_device_, handle.buffer, nullptr);

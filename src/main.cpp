@@ -31,7 +31,7 @@ std::int32_t main(std::int32_t argc, gsl::zstring* argv)
         }
     }
 
-    graphics.destroyVertexBuffer(buffer);
+    graphics.destroyBuffer(buffer);
     
     return EXIT_SUCCESS;
 }
