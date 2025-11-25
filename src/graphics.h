@@ -67,6 +67,8 @@ namespace vulkanEng
         void createCommandBuffer();
         void createSignals();
         void createDescriptorSetLayout();
+        void createDescriptorPool();
+        void createDescriptorSets();
 
         void RecreateSwapChain();
         void CleanupSwapChain();
@@ -148,6 +150,8 @@ namespace vulkanEng
 
         std::uint32_t current_image_index_ = 0;
 
+        VkDescriptorPool descriptor_pool_ = VK_NULL_HANDLE;
+        VkDescriptorSet descriptor_set_ = VK_NULL_HANDLE;
         BufferHandle uniform_buffer_;
         void* uniform_buffer_location_;
 

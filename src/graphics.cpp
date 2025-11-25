@@ -1365,6 +1365,17 @@ namespace vulkanEng
     void Graphics::RenderBuffer(BufferHandle handle, std::uint32_t vertex_count)
     {
         VkDeviceSize offset = 0;
+
+        vkCmdBindDescriptorSets(
+            command_buffer_,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            pipeline_layout_,
+            0,
+            1,
+            &descriptor_set_,
+            0,
+            nullptr);
+
         vkCmdBindVertexBuffers(
             command_buffer_,
             0,
@@ -1378,12 +1389,25 @@ namespace vulkanEng
             1,
             0,
             0);
+        
+        SetModelMatrix(glm::mat4(1.0f));
     }
 
     void Graphics::RenderIndexedBuffer(BufferHandle index_buffer, 
         BufferHandle vertex_buffer, std::uint32_t count)
     {
         VkDeviceSize offset = 0;
+
+        vkCmdBindDescriptorSets(
+            command_buffer_,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            pipeline_layout_,
+            0,
+            1,
+            &descriptor_set_,
+            0,
+            nullptr);
+
         vkCmdBindVertexBuffers(
             command_buffer_,
             0,
@@ -1491,6 +1515,70 @@ namespace vulkanEng
             &uniform_buffer_location_);
     }
 
+    void Graphics::createDescriptorPool()
+    {
+        VkDescriptorPoolSize pool_size = {};
+        pool_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        pool_size.descriptorCount = 1;
+
+        VkDescriptorPoolCreateInfo create_info = {};
+        create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        create_info.poolSizeCount = 1;
+        create_info.pPoolSizes = &pool_size;
+        create_info.maxSets = 1;
+        
+        VkResult result = vkCreateDescriptorPool(
+            logical_device_,
+            &create_info,
+            nullptr,
+            &descriptor_pool_);
+
+        if (result != VK_SUCCESS) {
+            spdlog::error("Failed to create descriptor pool: {}", static_cast<int>(result));
+            std::exit(EXIT_FAILURE);
+        }
+    }
+
+    void Graphics::createDescriptorSets()
+    {
+        VkDescriptorSetAllocateInfo set_info = {};
+        set_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        set_info.descriptorPool = descriptor_pool_;
+        set_info.descriptorSetCount = 1;
+        set_info.pSetLayouts = &descriptor_set_layout_;
+        
+        VkResult result = vkAllocateDescriptorSets(
+            logical_device_,
+            &set_info,
+            &descriptor_set_);
+
+        if (result != VK_SUCCESS) {
+            spdlog::error("Failed to allocate descriptor set: {}", static_cast<int>(result));
+            std::exit(EXIT_FAILURE);
+        }
+
+        VkDescriptorBufferInfo buffer_info = {};
+        buffer_info.buffer = uniform_buffer_.buffer;
+        buffer_info.offset = 0;
+        buffer_info.range = sizeof(UniformTransformations);
+
+        VkWriteDescriptorSet descriptor_write = {};
+        descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptor_write.dstSet = descriptor_set_;
+        descriptor_write.dstBinding = 0;
+        descriptor_write.dstArrayElement = 0;
+        descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptor_write.descriptorCount = 1;
+        descriptor_write.pBufferInfo = &buffer_info;
+
+        vkUpdateDescriptorSets(
+            logical_device_,
+            1,
+            &descriptor_write,
+            0,
+            nullptr);
+    }
+
     #pragma endregion
 
     #pragma region CLASS
@@ -1511,6 +1599,10 @@ namespace vulkanEng
             vkDeviceWaitIdle(logical_device_);
 
             CleanupSwapChain();
+
+            if(descriptor_pool_ != VK_NULL_HANDLE) {
+                vkDestroyDescriptorPool(logical_device_, descriptor_pool_, nullptr);
+            }
 
             destroyBuffer(uniform_buffer_);
 
@@ -1582,6 +1674,8 @@ namespace vulkanEng
         createCommandBuffer();
         createSignals();
         createUniformBuffers();
+        createDescriptorPool();
+        createDescriptorSets();
     }
 
     #pragma endregion
