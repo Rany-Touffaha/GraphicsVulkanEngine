@@ -780,8 +780,17 @@ namespace vulkanEng
         color_blending_info.logicOpEnable = VK_FALSE;
         color_blending_info.attachmentCount = 1;
         color_blending_info.pAttachments = &color_blend_attachment;
+        
+        VkPushConstantRange model_matrix_range = {};
+        model_matrix_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        model_matrix_range.offset = 0;
+        model_matrix_range.size = sizeof(glm::mat4);
+
         VkPipelineLayoutCreateInfo layout_info = {};
         layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        layout_info.pushConstantRangeCount = 1;
+        layout_info.pPushConstantRanges = &model_matrix_range;
+
         VkResult layout_result = vkCreatePipelineLayout(
             logical_device_,
             &layout_info,
@@ -1047,8 +1056,6 @@ namespace vulkanEng
             VK_TRUE,
             UINT64_MAX);
 
-
-
         VkResult image_acquire_result = vkAcquireNextImageKHR(
             logical_device_,
             swap_chain_,
@@ -1074,6 +1081,8 @@ namespace vulkanEng
             &still_rendering_fence_);
         
         BeginCommands();
+        SetModelMatrix(glm::mat4(1.0f));
+
         return true;
     }
 
@@ -1367,6 +1376,20 @@ namespace vulkanEng
             0,
             0,
             0);
+        
+        SetModelMatrix(glm::mat4(1.0f));
+    }
+
+    void Graphics::SetModelMatrix(glm::mat4 model)
+    {
+        vkCmdPushConstants(
+            command_buffer_,
+            pipeline_layout_,
+            VK_SHADER_STAGE_VERTEX_BIT,
+            0,
+            sizeof(glm::mat4),
+            &model);
+        
     }
 
     VkCommandBuffer Graphics::beginTransientCommandBuffer()

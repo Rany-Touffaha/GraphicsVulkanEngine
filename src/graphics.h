@@ -14,6 +14,7 @@ namespace vulkanEng
         ~Graphics();
 
         bool BeginFrame();
+        void SetModelMatrix(glm::mat4 model);
         void RenderBuffer(BufferHandle handle, std::uint32_t vertex_count);
         void RenderIndexedBuffer(BufferHandle index_buffer, 
             BufferHandle vertex_buffer, std::uint32_t count);
