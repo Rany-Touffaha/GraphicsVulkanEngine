@@ -5,6 +5,7 @@
 #include <vulkan/vulkan.h>
 #include <spdlog/spdlog.h>
 #include <set>
+#include <stb_image.h>
 
 namespace vulkanEng
 {
@@ -1635,7 +1636,33 @@ namespace vulkanEng
 
     TextureHandle Graphics::createTexture(gsl::czstring path)
     {
+        glm::ivec2 image_extents;
+        std::int32_t channels;
+        std::vector<std::uint8_t> image_file_data = readFile(path);
+        std::uint8_t* pixel_data = stbi_load_from_memory(
+            image_file_data.data(),
+            image_file_data.size(),
+            &image_extents.x,
+            &image_extents.y,
+            &channels,
+            STBI_rgb_alpha);
+
+        VkDeviceSize buffer_size = image_extents.x * image_extents.y * 4;
+        BufferHandle staging = createBuffer(
+            buffer_size,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        
+        void* data_location;
+        vkMapMemory(logical_device_, staging.memory, 0, buffer_size, 0, &data_location);
+        std::memcpy(data_location, pixel_data, buffer_size);
+        vkUnmapMemory(logical_device_, staging.memory);
+
+        stbi_image_free(pixel_data);
+
         TextureHandle handle;
+
+        destroyBuffer(staging);
 
         return handle;
     }
