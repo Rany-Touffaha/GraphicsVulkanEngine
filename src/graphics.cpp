@@ -1660,7 +1660,9 @@ namespace vulkanEng
 
         stbi_image_free(pixel_data);
 
-        TextureHandle handle;
+        TextureHandle handle = createImage(image_extents, 
+            VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
         destroyBuffer(staging);
 
@@ -1689,6 +1691,71 @@ namespace vulkanEng
         }
     }
 
+    TextureHandle Graphics::createImage(glm::ivec2 size, VkBufferUsageFlags usage, 
+        VkMemoryPropertyFlags properties)
+    {
+        TextureHandle handle = {};
+
+        VkImageCreateInfo image_info = {};
+        image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        image_info.usage = usage;
+        image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        image_info.imageType = VK_IMAGE_TYPE_2D;
+        image_info.extent.width = size.x;
+        image_info.extent.height = size.y;
+        image_info.extent.depth = 1;
+        image_info.mipLevels = 1;
+        image_info.arrayLayers = 1;
+        image_info.format = VK_FORMAT_R8G8B8A8_SRGB;
+        image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+        image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        image_info.samples = VK_SAMPLE_COUNT_1_BIT;
+        image_info.flags = 0;
+
+        VkResult result = vkCreateImage(
+            logical_device_,
+            &image_info,
+            nullptr,
+            &handle.image);
+        if (result != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create image.");
+        }
+
+        VkMemoryRequirements memory_requirements;
+        vkGetImageMemoryRequirements(
+            logical_device_,
+            handle.image,
+            &memory_requirements);
+        
+        std::uint32_t chosen_memory_type = 
+            findMemoryType(
+                memory_requirements.memoryTypeBits,
+                properties);
+        
+        VkMemoryAllocateInfo allocation_info = {};
+        allocation_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocation_info.allocationSize = memory_requirements.size;
+        allocation_info.memoryTypeIndex = chosen_memory_type;
+
+        VkResult allocation_result = vkAllocateMemory(
+            logical_device_,
+            &allocation_info,
+            nullptr,
+            &handle.memory);
+        
+        if (allocation_result != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate image memory.");
+        }
+
+        vkBindImageMemory(
+            logical_device_,
+            handle.image,
+            handle.memory,
+            0);
+        
+        return handle;
+
+    }
 
     #pragma region CLASS
 

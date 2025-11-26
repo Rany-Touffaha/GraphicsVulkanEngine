@@ -116,6 +116,9 @@ namespace vulkanEng
         void endTransientCommandBuffer(VkCommandBuffer command_buffer);
         void createUniformBuffers();
 
+        TextureHandle createImage(glm::ivec2 size, VkBufferUsageFlags usage, 
+            VkMemoryPropertyFlags properties);
+
         VkViewport getViewport();
         VkRect2D getScissor();
 
