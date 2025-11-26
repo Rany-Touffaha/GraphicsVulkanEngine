@@ -136,3 +136,4 @@ src/*.app
 
 ### VS Code Workspace ###
 *.code-workspace
+*.jpg

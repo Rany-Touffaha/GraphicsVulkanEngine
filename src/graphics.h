@@ -5,6 +5,7 @@
 #include <vertex.h>
 #include <buffer_handle.h>
 #include <uniform_transformations.h>
+#include <texture_handle.h>
 
 namespace vulkanEng
 {
@@ -17,6 +18,7 @@ namespace vulkanEng
         bool BeginFrame();
         void SetModelMatrix(glm::mat4 model);
         void SetViewProjection(glm::mat4 view, glm::mat4 projection);
+        void SetTexture(TextureHandle handle);
         void RenderBuffer(BufferHandle handle, std::uint32_t vertex_count);
         void RenderIndexedBuffer(BufferHandle index_buffer, 
             BufferHandle vertex_buffer, std::uint32_t count);
@@ -25,6 +27,9 @@ namespace vulkanEng
         BufferHandle createVertexBuffer(gsl::span<Vertex> vertices);
         BufferHandle createIndexBuffer(gsl::span<std::uint32_t> indices);
         void destroyBuffer(BufferHandle handle);
+
+        TextureHandle createTexture(gsl::czstring path);
+        void destroyTexture(TextureHandle handle);
 
     private:
 

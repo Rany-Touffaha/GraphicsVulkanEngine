@@ -31,18 +31,21 @@ std::int32_t main(std::int32_t argc, gsl::zstring* argv)
     glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.0f));
     glm::mat4 projection = glm::perspective(glm::radians(60.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+    
     graphics.SetViewProjection(view, projection);
+    vulkanEng::TextureHandle texture = graphics.createTexture("VSCodeProjects/GraphicsVulkanEngine/paving-stones.jpg");
 
     while (!window.shouldClose())
     {
         glfwPollEvents();
         if(graphics.BeginFrame()){
-            graphics.RenderIndexedBuffer(index_buffer, buffer,
-                indices.size());
+            graphics.SetTexture(texture);
+            graphics.RenderIndexedBuffer(index_buffer, buffer, indices.size());
             graphics.EndFrame();
         }
     }
 
+    graphics.destroyTexture(texture);
     graphics.destroyBuffer(buffer);
     graphics.destroyBuffer(index_buffer);
     

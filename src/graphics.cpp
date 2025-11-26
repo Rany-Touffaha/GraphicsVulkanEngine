@@ -1633,6 +1633,36 @@ namespace vulkanEng
         }
     }
 
+    TextureHandle Graphics::createTexture(gsl::czstring path)
+    {
+        TextureHandle handle;
+
+        return handle;
+    }
+
+    void Graphics::destroyTexture(TextureHandle handle)
+    {
+        // To be implemented
+    }
+
+    void Graphics::SetTexture(TextureHandle handle)
+    {
+        if (handle.set != VK_NULL_HANDLE) {
+            vkCmdBindDescriptorSets(
+                command_buffer_,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipeline_layout_,
+                0,
+                1,
+                &handle.set,
+                0,
+                nullptr);
+        } else {
+            spdlog::error("Attempted to bind a null texture descriptor set.");
+        }
+    }
+
+
     #pragma region CLASS
 
     Graphics::Graphics(gsl::not_null<Window*> window)
