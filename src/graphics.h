@@ -121,6 +121,7 @@ namespace vulkanEng
         void transitionImageLayout(VkImage image,
             VkImageLayout old_layout, VkImageLayout new_layout);
         void copyBufferToImage(VkBuffer buffer, VkImage image, glm::ivec2 size);
+        VkImageView createImageView(VkImage image, VkFormat format);
 
         VkViewport getViewport();
         VkRect2D getScissor();

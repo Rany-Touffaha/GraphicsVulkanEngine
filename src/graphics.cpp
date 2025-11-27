@@ -608,19 +608,13 @@ namespace vulkanEng
             swap_chain_images_.data());
     }
 
-    void Graphics::createImageViews()
+    VkImageView Graphics::createImageView(VkImage image, VkFormat format)
     {
-        swap_chain_image_views_.resize(swap_chain_images_.size());
-        spdlog::info("Creating image views for swap chain images");
-
-        auto image_view_it = swap_chain_image_views_.begin();
-        for (VkImage image : swap_chain_images_)
-        {
-            VkImageViewCreateInfo info = {};
+        VkImageViewCreateInfo info = {};
             info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
             info.image = image;
             info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            info.format = surface_format_.format;
+            info.format = format;
             info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
             info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
             info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -631,15 +625,29 @@ namespace vulkanEng
             info.subresourceRange.baseArrayLayer = 0;
             info.subresourceRange.layerCount = 1;
 
+            VkImageView view;
             VkResult result = vkCreateImageView(
                 logical_device_,
                 &info,
                 nullptr,
-                &*image_view_it);
+                &view);
 
             if (result != VK_SUCCESS) {
                 std::exit(EXIT_FAILURE);
             }
+
+            return view;
+    }
+
+    void Graphics::createImageViews()
+    {
+        swap_chain_image_views_.resize(swap_chain_images_.size());
+        spdlog::info("Creating image views for swap chain images");
+
+        auto image_view_it = swap_chain_image_views_.begin();
+        for (VkImage image : swap_chain_images_)
+        {
+            *image_view_it = createImageView(image, surface_format_.format);
             image_view_it = std::next(image_view_it);
         }
     }
@@ -791,8 +799,13 @@ namespace vulkanEng
         layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         layout_info.pushConstantRangeCount = 1;
         layout_info.pPushConstantRanges = &model_matrix_range;
-        layout_info.setLayoutCount = 1;
-        layout_info.pSetLayouts = &uniform_set_layout_;
+
+        std::array<VkDescriptorSetLayout, 2> set_layouts = {
+            uniform_set_layout_, texture_set_layout_
+        };
+
+        layout_info.setLayoutCount = set_layouts.size();
+        layout_info.pSetLayouts = set_layouts.data();
 
         VkResult layout_result = vkCreatePipelineLayout(
             logical_device_,
@@ -1558,6 +1571,7 @@ namespace vulkanEng
         texture_pool_info.poolSizeCount = 1;
         texture_pool_info.pPoolSizes = &texture_pool_size;
         texture_pool_info.maxSets = 1024;
+        texture_pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
         if (vkCreateDescriptorPool(logical_device_, 
                 &texture_pool_info, nullptr, &texture_pool_) != VK_SUCCESS) {
@@ -1675,6 +1689,41 @@ namespace vulkanEng
             handle.image,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+        handle.image_view = createImageView(handle.image, VK_FORMAT_R8G8B8A8_SRGB);
+
+        VkDescriptorSetAllocateInfo set_info = {};
+        set_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        set_info.descriptorPool = texture_pool_;
+        set_info.descriptorSetCount = 1;
+        set_info.pSetLayouts = &texture_set_layout_;
+        
+        VkResult result = vkAllocateDescriptorSets(
+            logical_device_,
+            &set_info,
+            &handle.set);
+
+        if (result != VK_SUCCESS) {
+            spdlog::error("Failed to allocate descriptor set: {}", static_cast<int>(result));
+            std::exit(EXIT_FAILURE);
+        }
+
+        VkDescriptorImageInfo image_info = {};
+        image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        image_info.imageView = handle.image_view;
+        image_info.sampler = texture_sampler_;
+
+        VkWriteDescriptorSet descriptor_write = {};
+        descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptor_write.dstSet = handle.set;
+        descriptor_write.dstBinding = 0;
+        descriptor_write.dstArrayElement = 0;
+        descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptor_write.descriptorCount = 1;
+        descriptor_write.pImageInfo = &image_info;
+
+        vkUpdateDescriptorSets(logical_device_, 1, &descriptor_write, 0, nullptr);
+
         destroyBuffer(staging);
 
         return handle;
@@ -1682,6 +1731,9 @@ namespace vulkanEng
 
     void Graphics::destroyTexture(TextureHandle handle)
     {
+        vkDeviceWaitIdle(logical_device_);
+        vkFreeDescriptorSets(logical_device_, texture_pool_, 1, &handle.set);
+        vkDestroyImageView(logical_device_, handle.image_view, nullptr);
         vkDestroyImage(logical_device_, handle.image, nullptr);
         vkFreeMemory(logical_device_, handle.memory, nullptr);
     }
@@ -1693,7 +1745,7 @@ namespace vulkanEng
                 command_buffer_,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
                 pipeline_layout_,
-                0,
+                1,
                 1,
                 &handle.set,
                 0,
