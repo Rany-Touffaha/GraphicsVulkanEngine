@@ -246,7 +246,7 @@ namespace vulkanEng
                 [&](const VkQueueFamilyProperties& props) {
                     return props.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT);
                 });
-        
+
         QueueFamilyIndices result;
         result.graphics_family = graphics_family_it - families.begin();
 
@@ -608,7 +608,7 @@ namespace vulkanEng
             swap_chain_images_.data());
     }
 
-    VkImageView Graphics::createImageView(VkImage image, VkFormat format)
+    VkImageView Graphics::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspect_flags)
     {
         VkImageViewCreateInfo info = {};
             info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -619,7 +619,7 @@ namespace vulkanEng
             info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
             info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
             info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-            info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            info.subresourceRange.aspectMask = aspect_flags;
             info.subresourceRange.baseMipLevel = 0;
             info.subresourceRange.levelCount = 1;
             info.subresourceRange.baseArrayLayer = 0;
@@ -647,7 +647,7 @@ namespace vulkanEng
         auto image_view_it = swap_chain_image_views_.begin();
         for (VkImage image : swap_chain_images_)
         {
-            *image_view_it = createImageView(image, surface_format_.format);
+            *image_view_it = createImageView(image, surface_format_.format, VK_IMAGE_ASPECT_COLOR_BIT);
             image_view_it = std::next(image_view_it);
         }
     }
@@ -789,6 +789,16 @@ namespace vulkanEng
         color_blending_info.logicOpEnable = VK_FALSE;
         color_blending_info.attachmentCount = 1;
         color_blending_info.pAttachments = &color_blend_attachment;
+
+        VkPipelineDepthStencilStateCreateInfo depth_stencil_info = {};
+        depth_stencil_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+        depth_stencil_info.depthTestEnable = VK_TRUE;
+        depth_stencil_info.depthWriteEnable = VK_TRUE;
+        depth_stencil_info.depthCompareOp = VK_COMPARE_OP_LESS;
+        depth_stencil_info.depthBoundsTestEnable = VK_FALSE;
+        depth_stencil_info.minDepthBounds = 0.0f;
+        depth_stencil_info.maxDepthBounds = 1.0f;
+        depth_stencil_info.stencilTestEnable = VK_FALSE;
         
         VkPushConstantRange model_matrix_range = {};
         model_matrix_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
@@ -827,7 +837,7 @@ namespace vulkanEng
         pipeline_info.pViewportState = &viewport_info;
         pipeline_info.pRasterizationState = &rasterization_state_info;
         pipeline_info.pMultisampleState = &multisample_state_info;
-        pipeline_info.pDepthStencilState = nullptr;
+        pipeline_info.pDepthStencilState = &depth_stencil_info;
         pipeline_info.pColorBlendState = &color_blending_info;
         pipeline_info.pDynamicState = &dynamic_state_info;
         pipeline_info.layout = pipeline_layout_;
@@ -873,17 +883,46 @@ namespace vulkanEng
         color_attachment_ref.attachment = 0;
         color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+        VkAttachmentDescription depth_attachment = {};
+        depth_attachment.format = VK_FORMAT_D32_SFLOAT;
+        depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference depth_attachment_ref = {};
+        depth_attachment_ref.attachment = 1;
+        depth_attachment_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
         VkSubpassDescription main_subpass = {};
         main_subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         main_subpass.colorAttachmentCount = 1;
         main_subpass.pColorAttachments = &color_attachment_ref;
+        main_subpass.pDepthStencilAttachment = &depth_attachment_ref;
+
+        VkSubpassDependency dependency = {};
+        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependency.dstSubpass = 0;
+        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | 
+                                  VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        dependency.srcAccessMask = 0;
+        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                                  VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+        std::array<VkAttachmentDescription, 2> attachments = {color_attachment, depth_attachment};
 
         VkRenderPassCreateInfo render_pass_info = {};
         render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        render_pass_info.attachmentCount = 1;
-        render_pass_info.pAttachments = &color_attachment;
+        render_pass_info.attachmentCount = attachments.size();
+        render_pass_info.pAttachments = attachments.data();
         render_pass_info.subpassCount = 1;
         render_pass_info.pSubpasses = &main_subpass;
+        render_pass_info.dependencyCount = 1;
+        render_pass_info.pDependencies = &dependency;
 
         VkResult result = vkCreateRenderPass(
             logical_device_,
@@ -929,11 +968,16 @@ namespace vulkanEng
 
         for (std::uint32_t i = 0; i < swap_chain_image_views_.size(); i++)
         {
+            std::array<VkImageView, 2> attachments = {
+                swap_chain_image_views_[i],
+                depth_texture_.image_view
+            };
+
             VkFramebufferCreateInfo info = {};
             info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
             info.renderPass = render_pass_;
-            info.attachmentCount = 1;
-            info.pAttachments = &swap_chain_image_views_[i];
+            info.attachmentCount = attachments.size();
+            info.pAttachments = attachments.data();
             info.width = extent_.width;
             info.height = extent_.height;
             info.layers = 1;
@@ -954,6 +998,10 @@ namespace vulkanEng
     void Graphics::createCommandPool()
     {
         QueueFamilyIndices indices = findQueueFamilies(physical_device_);
+        if (!indices.graphics_family.has_value()) {
+            spdlog::error("Failed to find a valid graphics queue family for command pool creation.");
+            std::exit(EXIT_FAILURE);
+        }
 
         VkCommandPoolCreateInfo pool_info = {};
         pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -1010,9 +1058,11 @@ namespace vulkanEng
         render_pass_begin_info.renderArea.offset = {0, 0};
         render_pass_begin_info.renderArea.extent = extent_;
 
-        VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-        render_pass_begin_info.clearValueCount = 1;
-        render_pass_begin_info.pClearValues = &clear_color;
+        std::array<VkClearValue, 2> clear_values = {};
+        clear_values[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+        clear_values[1].depthStencil = {1.0f, 0};
+        render_pass_begin_info.clearValueCount = clear_values.size();
+        render_pass_begin_info.pClearValues = clear_values.data();
 
         vkCmdBeginRenderPass(command_buffer_, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -1674,7 +1724,7 @@ namespace vulkanEng
 
         stbi_image_free(pixel_data);
 
-        TextureHandle handle = createImage(image_extents, 
+        TextureHandle handle = createImage(image_extents, VK_FORMAT_R8G8B8A8_SRGB,
             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         
@@ -1690,7 +1740,9 @@ namespace vulkanEng
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-        handle.image_view = createImageView(handle.image, VK_FORMAT_R8G8B8A8_SRGB);
+        handle.image_view = createImageView(handle.image,
+            VK_FORMAT_R8G8B8A8_SRGB, 
+            VK_IMAGE_ASPECT_COLOR_BIT);
 
         VkDescriptorSetAllocateInfo set_info = {};
         set_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -1767,7 +1819,6 @@ namespace vulkanEng
         barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         barrier.image = image;
-        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         barrier.subresourceRange.baseArrayLayer = 0;
         barrier.subresourceRange.baseMipLevel = 0;
         barrier.subresourceRange.levelCount = 1;
@@ -1794,9 +1845,28 @@ namespace vulkanEng
             source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
             destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
         } 
+        else if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED &&
+            new_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+        {
+            barrier.srcAccessMask = 0;
+            barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | 
+                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+            source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            destination_stage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        }
         else 
         {
             throw std::invalid_argument("Unsupported layout transition.");
+        }
+
+        if (new_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+        {
+            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        }
+        else 
+        {
+            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         }
 
         vkCmdPipelineBarrier(
@@ -1840,7 +1910,7 @@ namespace vulkanEng
         endTransientCommandBuffer(local_command_buffer);
     }
 
-    TextureHandle Graphics::createImage(glm::ivec2 size, VkBufferUsageFlags usage, 
+    TextureHandle Graphics::createImage(glm::ivec2 size, VkFormat image_format, VkBufferUsageFlags usage, 
         VkMemoryPropertyFlags properties)
     {
         TextureHandle handle = {};
@@ -1855,7 +1925,7 @@ namespace vulkanEng
         image_info.extent.depth = 1;
         image_info.mipLevels = 1;
         image_info.arrayLayers = 1;
-        image_info.format = VK_FORMAT_R8G8B8A8_SRGB;
+        image_info.format = image_format;
         image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
         image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         image_info.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -1906,6 +1976,27 @@ namespace vulkanEng
 
     }
 
+    void Graphics::createDepthResources()
+    {
+        VkFormat kDepthFormat = VK_FORMAT_D32_SFLOAT;
+
+        depth_texture_ = createImage(
+            glm::ivec2(extent_.width, extent_.height),
+            kDepthFormat,
+            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        
+        depth_texture_.image_view = createImageView(depth_texture_.image, kDepthFormat,
+            VK_IMAGE_ASPECT_DEPTH_BIT);
+        
+        transitionImageLayout(
+            depth_texture_.image,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    }
+
+    #pragma endregion
+
     #pragma region CLASS
 
     Graphics::Graphics(gsl::not_null<Window*> window)
@@ -1924,6 +2015,7 @@ namespace vulkanEng
             vkDeviceWaitIdle(logical_device_);
 
             CleanupSwapChain();
+            destroyTexture(depth_texture_);
 
             if(texture_pool_ != VK_NULL_HANDLE) {
                 vkDestroyDescriptorPool(logical_device_, texture_pool_, nullptr);
@@ -2006,14 +2098,19 @@ namespace vulkanEng
         createDescriptorSetLayouts();
         createImageViews();
         createGraphicsPipeline();
-        createFramebuffers();
         createCommandPool();
+        createDepthResources();
+        createFramebuffers();
         createCommandBuffer();
         createSignals();
         createUniformBuffers();
         createDescriptorPools();
         createDescriptorSets();
         createTextureSampler();
+        transitionImageLayout(
+            depth_texture_.image,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
     }
 
     #pragma endregion

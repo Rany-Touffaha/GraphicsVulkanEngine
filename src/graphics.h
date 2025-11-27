@@ -75,6 +75,7 @@ namespace vulkanEng
         void createDescriptorPools();
         void createDescriptorSets();
         void createTextureSampler();
+        void createDepthResources();
 
         void RecreateSwapChain();
         void CleanupSwapChain();
@@ -116,12 +117,12 @@ namespace vulkanEng
         void endTransientCommandBuffer(VkCommandBuffer command_buffer);
         void createUniformBuffers();
 
-        TextureHandle createImage(glm::ivec2 size, VkBufferUsageFlags usage, 
+        TextureHandle createImage(glm::ivec2 size, VkFormat image_format, VkBufferUsageFlags usage, 
             VkMemoryPropertyFlags properties);
         void transitionImageLayout(VkImage image,
             VkImageLayout old_layout, VkImageLayout new_layout);
         void copyBufferToImage(VkBuffer buffer, VkImage image, glm::ivec2 size);
-        VkImageView createImageView(VkImage image, VkFormat format);
+        VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspect_flags);
 
         VkViewport getViewport();
         VkRect2D getScissor();
@@ -171,6 +172,7 @@ namespace vulkanEng
         VkDescriptorSetLayout texture_set_layout_ = VK_NULL_HANDLE;
         VkDescriptorPool texture_pool_ = VK_NULL_HANDLE;
         VkSampler texture_sampler_ = VK_NULL_HANDLE;
+        TextureHandle depth_texture_;
 
         gsl::not_null<Window*> window_;
         bool validation_enabled_ = true;
