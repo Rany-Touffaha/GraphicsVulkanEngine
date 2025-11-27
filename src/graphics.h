@@ -118,6 +118,9 @@ namespace vulkanEng
 
         TextureHandle createImage(glm::ivec2 size, VkBufferUsageFlags usage, 
             VkMemoryPropertyFlags properties);
+        void transitionImageLayout(VkImage image,
+            VkImageLayout old_layout, VkImageLayout new_layout);
+        void copyBufferToImage(VkBuffer buffer, VkImage image, glm::ivec2 size);
 
         VkViewport getViewport();
         VkRect2D getScissor();

@@ -1663,7 +1663,18 @@ namespace vulkanEng
         TextureHandle handle = createImage(image_extents, 
             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        
+        transitionImageLayout(
+            handle.image,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
+        copyBufferToImage(staging.buffer, handle.image, image_extents);
+
+        transitionImageLayout(
+            handle.image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         destroyBuffer(staging);
 
         return handle;
@@ -1671,7 +1682,8 @@ namespace vulkanEng
 
     void Graphics::destroyTexture(TextureHandle handle)
     {
-        // To be implemented
+        vkDestroyImage(logical_device_, handle.image, nullptr);
+        vkFreeMemory(logical_device_, handle.memory, nullptr);
     }
 
     void Graphics::SetTexture(TextureHandle handle)
@@ -1689,6 +1701,91 @@ namespace vulkanEng
         } else {
             spdlog::error("Attempted to bind a null texture descriptor set.");
         }
+    }
+
+    void Graphics::transitionImageLayout(VkImage image,
+            VkImageLayout old_layout, VkImageLayout new_layout)
+    {
+        VkCommandBuffer local_command_buffer = beginTransientCommandBuffer();
+
+        VkImageMemoryBarrier barrier = {};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout = old_layout;
+        barrier.newLayout = new_layout;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = image;
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.baseMipLevel = 0;
+        barrier.subresourceRange.levelCount = 1;
+        barrier.subresourceRange.layerCount = 1;
+
+        VkPipelineStageFlags source_stage;
+        VkPipelineStageFlags destination_stage;
+
+        if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED && 
+            new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) 
+        {
+            barrier.srcAccessMask = 0;
+            barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+            source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            destination_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        } 
+        else if (old_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && 
+            new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) 
+        {
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        } 
+        else 
+        {
+            throw std::invalid_argument("Unsupported layout transition.");
+        }
+
+        vkCmdPipelineBarrier(
+            local_command_buffer,
+            source_stage,
+            destination_stage,
+            0,
+            0,
+            nullptr,
+            0,
+            nullptr,
+            1,
+            &barrier);
+
+        endTransientCommandBuffer(local_command_buffer);
+    }
+
+    void Graphics::copyBufferToImage(VkBuffer buffer, VkImage image, glm::ivec2 size)
+    {
+        VkCommandBuffer local_command_buffer = beginTransientCommandBuffer();
+
+        VkBufferImageCopy region = {};
+        region.bufferOffset = 0;
+        region.bufferRowLength = 0;
+        region.bufferImageHeight = 0;
+        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.mipLevel = 0;
+        region.imageSubresource.baseArrayLayer = 0;
+        region.imageSubresource.layerCount = 1;
+        region.imageOffset = {0, 0, 0};
+        region.imageExtent = {static_cast<std::uint32_t>(size.x), static_cast<std::uint32_t>(size.y), 1};
+
+        vkCmdCopyBufferToImage(
+            local_command_buffer,
+            buffer,
+            image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,
+            &region);
+
+        endTransientCommandBuffer(local_command_buffer);
     }
 
     TextureHandle Graphics::createImage(glm::ivec2 size, VkBufferUsageFlags usage, 
