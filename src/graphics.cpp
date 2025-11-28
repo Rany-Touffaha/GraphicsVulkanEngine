@@ -1028,25 +1028,28 @@ namespace vulkanEng
         info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         info.commandBufferCount = 1;
 
-        VkResult result = vkAllocateCommandBuffers(
-            logical_device_,
-            &info,
-            &command_buffer_);
+        for(Frame& frame : frames_)
+        {
+            VkResult result = vkAllocateCommandBuffers(
+                logical_device_,
+                &info,
+                &frame.command_buffer);
 
-        if (result != VK_SUCCESS) {
-            spdlog::error("Failed to allocate command buffer: {}", static_cast<int>(result));
-            std::exit(EXIT_FAILURE);
+            if (result != VK_SUCCESS) {
+                spdlog::error("Failed to allocate command buffer: {}", static_cast<int>(result));
+                std::exit(EXIT_FAILURE);
+            }
         }
     }
 
     void Graphics::BeginCommands()
     {
-        vkResetCommandBuffer(command_buffer_, 0);
+        vkResetCommandBuffer(frames_[current_frame_].command_buffer, 0);
 
         VkCommandBufferBeginInfo begin_info = {};
         begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-        VkResult begin_state = vkBeginCommandBuffer(command_buffer_, &begin_info);
+        VkResult begin_state = vkBeginCommandBuffer(frames_[current_frame_].command_buffer, &begin_info);
         if (begin_state != VK_SUCCESS) {
             throw std::runtime_error("Failed to begin recording command buffer.");
         }
@@ -1064,20 +1067,20 @@ namespace vulkanEng
         render_pass_begin_info.clearValueCount = clear_values.size();
         render_pass_begin_info.pClearValues = clear_values.data();
 
-        vkCmdBeginRenderPass(command_buffer_, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(frames_[current_frame_].command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
-        vkCmdBindPipeline(command_buffer_, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_);
+        vkCmdBindPipeline(frames_[current_frame_].command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_);
         VkViewport viewport = getViewport();
         VkRect2D scissor = getScissor();
 
-        vkCmdSetViewport(command_buffer_, 0, 1, &viewport);
-        vkCmdSetScissor(command_buffer_, 0, 1, &scissor);
+        vkCmdSetViewport(frames_[current_frame_].command_buffer, 0, 1, &viewport);
+        vkCmdSetScissor(frames_[current_frame_].command_buffer, 0, 1, &scissor);
     }
 
     void Graphics::EndCommands()
     {
-        vkCmdEndRenderPass(command_buffer_);
-        VkResult end_buffer_result = vkEndCommandBuffer(command_buffer_);
+        vkCmdEndRenderPass(frames_[current_frame_].command_buffer);
+        VkResult end_buffer_result = vkEndCommandBuffer(frames_[current_frame_].command_buffer);
         if (end_buffer_result != VK_SUCCESS) {
             throw std::runtime_error("Failed to record command buffer.");
         }
@@ -1085,42 +1088,43 @@ namespace vulkanEng
 
     void Graphics::createSignals()
     {
-        VkSemaphoreCreateInfo semaphore_info = {};
-        semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-        VkFenceCreateInfo fence_info = {};
-        fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-        if(vkCreateSemaphore(
-            logical_device_,
-            &semaphore_info,
-            nullptr,
-            &image_available_signal_) != VK_SUCCESS ||
-           vkCreateSemaphore(
-            logical_device_,
-            &semaphore_info,
-            nullptr,
-            &render_finished_signal_) != VK_SUCCESS ||
-           vkCreateFence(
-            logical_device_,
-            &fence_info,
-            nullptr,
-            &still_rendering_fence_) != VK_SUCCESS) 
+        for (Frame& frame : frames_)
         {
-            spdlog::error("Failed to create synchronization objects for a frame.");
-            std::exit(EXIT_FAILURE);
+            VkSemaphoreCreateInfo semaphore_info = {};
+            semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+            VkFenceCreateInfo fence_info = {};
+            fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+            fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+            if(vkCreateSemaphore(
+                logical_device_,
+                &semaphore_info,
+                nullptr,
+                &frame.image_available_signal) != VK_SUCCESS ||
+            vkCreateSemaphore(
+                logical_device_,
+                &semaphore_info,
+                nullptr,
+                &frame.render_finished_signal) != VK_SUCCESS ||
+            vkCreateFence(
+                logical_device_,
+                &fence_info,
+                nullptr,
+                &frame.still_rendering_fence) != VK_SUCCESS) 
+            {
+                spdlog::error("Failed to create synchronization objects for a frame.");
+                std::exit(EXIT_FAILURE);
+            }
         }
     }
-
-
 
     bool Graphics::BeginFrame()
     {
         vkWaitForFences(
             logical_device_,
             1,
-            &still_rendering_fence_,
+            &frames_[current_frame_].still_rendering_fence,
             VK_TRUE,
             UINT64_MAX);
 
@@ -1128,7 +1132,7 @@ namespace vulkanEng
             logical_device_,
             swap_chain_,
             UINT64_MAX,
-            image_available_signal_,
+            frames_[current_frame_].image_available_signal,
             VK_NULL_HANDLE,
             &current_image_index_);
         
@@ -1146,7 +1150,7 @@ namespace vulkanEng
         vkResetFences(
             logical_device_,
             1,
-            &still_rendering_fence_);
+            &frames_[current_frame_].still_rendering_fence);
         
         BeginCommands();
         SetModelMatrix(glm::mat4(1.0f));
@@ -1163,20 +1167,20 @@ namespace vulkanEng
 
         VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
         submit_info.waitSemaphoreCount = 1;
-        submit_info.pWaitSemaphores = &image_available_signal_;
+        submit_info.pWaitSemaphores = &frames_[current_frame_].image_available_signal;
         submit_info.pWaitDstStageMask = &wait_stage;
 
         submit_info.commandBufferCount = 1;
-        submit_info.pCommandBuffers = &command_buffer_;
+        submit_info.pCommandBuffers = &frames_[current_frame_].command_buffer;
 
         submit_info.signalSemaphoreCount = 1;
-        submit_info.pSignalSemaphores = &render_finished_signal_;
+        submit_info.pSignalSemaphores = &frames_[current_frame_].render_finished_signal;
 
         VkResult submit_result = vkQueueSubmit(
             graphics_queue_,
             1,
             &submit_info,
-            still_rendering_fence_);
+            frames_[current_frame_].still_rendering_fence);
 
         if (submit_result != VK_SUCCESS) {
             throw std::runtime_error("Failed to submit draw command buffer.");
@@ -1185,7 +1189,7 @@ namespace vulkanEng
         VkPresentInfoKHR present_info = {};
         present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
         present_info.waitSemaphoreCount = 1;
-        present_info.pWaitSemaphores = &render_finished_signal_;
+        present_info.pWaitSemaphores = &frames_[current_frame_].render_finished_signal;
         present_info.swapchainCount = 1;
         present_info.pSwapchains = &swap_chain_;
         present_info.pImageIndices = &current_image_index_;
@@ -1197,6 +1201,8 @@ namespace vulkanEng
         } else if (result != VK_SUCCESS) {
             throw std::runtime_error("Failed to present swap chain image.");
         }
+
+        current_frame_ = (current_frame_ ++) % MAX_BUFFERED_FRAMES;
     }
 
     void Graphics::RecreateSwapChain()
@@ -1407,24 +1413,24 @@ namespace vulkanEng
         VkDeviceSize offset = 0;
 
         vkCmdBindDescriptorSets(
-            command_buffer_,
+            frames_[current_frame_].command_buffer,
             VK_PIPELINE_BIND_POINT_GRAPHICS,
             pipeline_layout_,
             0,
             1,
-            &uniform_set_,
+            &frames_[current_frame_].uniform_set,
             0,
             nullptr);
 
         vkCmdBindVertexBuffers(
-            command_buffer_,
+            frames_[current_frame_].command_buffer,
             0,
             1,
             &handle.buffer,
             &offset);
         
         vkCmdDraw(
-            command_buffer_,
+            frames_[current_frame_].command_buffer,
             vertex_count,
             1,
             0,
@@ -1439,30 +1445,30 @@ namespace vulkanEng
         VkDeviceSize offset = 0;
 
         vkCmdBindDescriptorSets(
-            command_buffer_,
+            frames_[current_frame_].command_buffer,
             VK_PIPELINE_BIND_POINT_GRAPHICS,
             pipeline_layout_,
             0,
             1,
-            &uniform_set_,
+            &frames_[current_frame_].uniform_set,
             0,
             nullptr);
 
         vkCmdBindVertexBuffers(
-            command_buffer_,
+            frames_[current_frame_].command_buffer,
             0,
             1,
             &vertex_buffer.buffer,
             &offset);
         
         vkCmdBindIndexBuffer(
-            command_buffer_,
+            frames_[current_frame_].command_buffer,
             index_buffer.buffer,
             0,
             VK_INDEX_TYPE_UINT32);
 
         vkCmdDrawIndexed(
-            command_buffer_,
+            frames_[current_frame_].command_buffer,
             count,
             1,
             0,
@@ -1475,7 +1481,7 @@ namespace vulkanEng
     void Graphics::SetModelMatrix(glm::mat4 model)
     {
         vkCmdPushConstants(
-            command_buffer_,
+            frames_[current_frame_].command_buffer,
             pipeline_layout_,
             VK_SHADER_STAGE_VERTEX_BIT,
             0,
@@ -1489,7 +1495,7 @@ namespace vulkanEng
         UniformTransformations transformations = {view, projection};
 
         std::memcpy(
-            uniform_buffer_location_,
+            frames_[current_frame_].uniform_buffer_location,
             &transformations,
             sizeof(UniformTransformations));
     }
@@ -1540,19 +1546,21 @@ namespace vulkanEng
     void Graphics::createUniformBuffers()
     {
         VkDeviceSize buffer_size = sizeof(UniformTransformations);
-
-        uniform_buffer_ = createBuffer(
-            buffer_size,
-            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        
-        vkMapMemory(
-            logical_device_,
-            uniform_buffer_.memory,
-            0,
-            buffer_size,
-            0,
-            &uniform_buffer_location_);
+        for(Frame& frame : frames_)
+        {
+            frame.uniform_buffer = createBuffer(
+                buffer_size,
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+            
+            vkMapMemory(
+                logical_device_,
+                frame.uniform_buffer.memory,
+                0,
+                buffer_size,
+                0,
+                &frame.uniform_buffer_location);
+        }
     }
 
     void Graphics::createDescriptorSetLayouts()
@@ -1596,13 +1604,13 @@ namespace vulkanEng
     {
         VkDescriptorPoolSize uniform_pool_size = {};
         uniform_pool_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        uniform_pool_size.descriptorCount = 1;
+        uniform_pool_size.descriptorCount = MAX_BUFFERED_FRAMES;
 
         VkDescriptorPoolCreateInfo uniform_pool_info = {};
         uniform_pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         uniform_pool_info.poolSizeCount = 1;
         uniform_pool_info.pPoolSizes = &uniform_pool_size;
-        uniform_pool_info.maxSets = 1;
+        uniform_pool_info.maxSets = MAX_BUFFERED_FRAMES;
 
         if (vkCreateDescriptorPool(logical_device_, 
                 &uniform_pool_info, nullptr, &uniform_pool_) != VK_SUCCESS) {
@@ -1631,42 +1639,45 @@ namespace vulkanEng
 
     void Graphics::createDescriptorSets()
     {
-        VkDescriptorSetAllocateInfo set_info = {};
-        set_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        set_info.descriptorPool = uniform_pool_;
-        set_info.descriptorSetCount = 1;
-        set_info.pSetLayouts = &uniform_set_layout_;
-        
-        VkResult result = vkAllocateDescriptorSets(
-            logical_device_,
-            &set_info,
-            &uniform_set_);
+        for(Frame& frame : frames_)
+        {
+            VkDescriptorSetAllocateInfo set_info = {};
+            set_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+            set_info.descriptorPool = uniform_pool_;
+            set_info.descriptorSetCount = 1;
+            set_info.pSetLayouts = &uniform_set_layout_;
+            
+            VkResult result = vkAllocateDescriptorSets(
+                logical_device_,
+                &set_info,
+                &frame.uniform_set);
 
-        if (result != VK_SUCCESS) {
-            spdlog::error("Failed to allocate descriptor set: {}", static_cast<int>(result));
-            std::exit(EXIT_FAILURE);
+            if (result != VK_SUCCESS) {
+                spdlog::error("Failed to allocate descriptor set: {}", static_cast<int>(result));
+                std::exit(EXIT_FAILURE);
+            }
+
+            VkDescriptorBufferInfo buffer_info = {};
+            buffer_info.buffer = frame.uniform_buffer.buffer;
+            buffer_info.offset = 0;
+            buffer_info.range = sizeof(UniformTransformations);
+
+            VkWriteDescriptorSet descriptor_write = {};
+            descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptor_write.dstSet = frame.uniform_set;
+            descriptor_write.dstBinding = 0;
+            descriptor_write.dstArrayElement = 0;
+            descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptor_write.descriptorCount = 1;
+            descriptor_write.pBufferInfo = &buffer_info;
+
+            vkUpdateDescriptorSets(
+                logical_device_,
+                1,
+                &descriptor_write,
+                0,
+                nullptr);
         }
-
-        VkDescriptorBufferInfo buffer_info = {};
-        buffer_info.buffer = uniform_buffer_.buffer;
-        buffer_info.offset = 0;
-        buffer_info.range = sizeof(UniformTransformations);
-
-        VkWriteDescriptorSet descriptor_write = {};
-        descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptor_write.dstSet = uniform_set_;
-        descriptor_write.dstBinding = 0;
-        descriptor_write.dstArrayElement = 0;
-        descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptor_write.descriptorCount = 1;
-        descriptor_write.pBufferInfo = &buffer_info;
-
-        vkUpdateDescriptorSets(
-            logical_device_,
-            1,
-            &descriptor_write,
-            0,
-            nullptr);
     }
 
     #pragma endregion
@@ -1794,7 +1805,7 @@ namespace vulkanEng
     {
         if (handle.set != VK_NULL_HANDLE) {
             vkCmdBindDescriptorSets(
-                command_buffer_,
+                frames_[current_frame_].command_buffer,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
                 pipeline_layout_,
                 1,
@@ -2033,22 +2044,27 @@ namespace vulkanEng
                 vkDestroyDescriptorPool(logical_device_, uniform_pool_, nullptr);
             }
 
-            destroyBuffer(uniform_buffer_);
+
+
+            for (Frame& frame : frames_)
+            {
+                destroyBuffer(frame.uniform_buffer);
+
+                if(frame.image_available_signal != VK_NULL_HANDLE) {
+                    vkDestroySemaphore(logical_device_, frame.image_available_signal, nullptr);
+                }
+
+                if(frame.render_finished_signal != VK_NULL_HANDLE) {
+                    vkDestroySemaphore(logical_device_, frame.render_finished_signal, nullptr);
+                }
+
+                if(frame.still_rendering_fence != VK_NULL_HANDLE) {
+                    vkDestroyFence(logical_device_, frame.still_rendering_fence, nullptr);
+                }       
+            }
 
             if(uniform_set_layout_ != VK_NULL_HANDLE) {
                 vkDestroyDescriptorSetLayout(logical_device_, uniform_set_layout_, nullptr);
-            }
-
-            if(image_available_signal_ != VK_NULL_HANDLE) {
-                vkDestroySemaphore(logical_device_, image_available_signal_, nullptr);
-            }
-
-            if(render_finished_signal_ != VK_NULL_HANDLE) {
-                vkDestroySemaphore(logical_device_, render_finished_signal_, nullptr);
-            }
-
-            if(still_rendering_fence_ != VK_NULL_HANDLE) {
-                vkDestroyFence(logical_device_, still_rendering_fence_, nullptr);
             }
 
             if (command_pool_ != VK_NULL_HANDLE)

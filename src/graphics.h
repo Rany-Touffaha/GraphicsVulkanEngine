@@ -9,6 +9,19 @@
 
 namespace vulkanEng
 {
+    struct Frame {
+        VkSemaphore image_available_signal = VK_NULL_HANDLE;
+        VkSemaphore render_finished_signal = VK_NULL_HANDLE;
+        VkFence still_rendering_fence = VK_NULL_HANDLE;
+
+        VkCommandBuffer command_buffer = VK_NULL_HANDLE;
+
+        VkDescriptorSet uniform_set = VK_NULL_HANDLE;
+        BufferHandle uniform_buffer;
+        void* uniform_buffer_location;
+
+    };
+
     class Graphics final
     {
     public:
@@ -155,24 +168,19 @@ namespace vulkanEng
         VkPipeline pipeline_ = VK_NULL_HANDLE;
 
         VkCommandPool command_pool_ = VK_NULL_HANDLE;
-        VkCommandBuffer command_buffer_ = VK_NULL_HANDLE;
-
-        VkSemaphore image_available_signal_ = VK_NULL_HANDLE;
-        VkSemaphore render_finished_signal_ = VK_NULL_HANDLE;
-        VkFence still_rendering_fence_ = VK_NULL_HANDLE;
 
         std::uint32_t current_image_index_ = 0;
 
         VkDescriptorSetLayout uniform_set_layout_ = VK_NULL_HANDLE;
         VkDescriptorPool uniform_pool_ = VK_NULL_HANDLE;
-        VkDescriptorSet uniform_set_ = VK_NULL_HANDLE;
-        BufferHandle uniform_buffer_;
-        void* uniform_buffer_location_;
 
         VkDescriptorSetLayout texture_set_layout_ = VK_NULL_HANDLE;
         VkDescriptorPool texture_pool_ = VK_NULL_HANDLE;
         VkSampler texture_sampler_ = VK_NULL_HANDLE;
         TextureHandle depth_texture_;
+
+        std::array<Frame, MAX_BUFFERED_FRAMES> frames_;
+        std::int32_t current_frame_ = 0;
 
         gsl::not_null<Window*> window_;
         bool validation_enabled_ = true;
